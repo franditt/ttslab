@@ -97,9 +97,11 @@ class Item(object):
 
     def __getitem__(self, featname):
         """ Returns the requested feature from itemcontent.
-            This raises KeyError when featname is not available..
         """
-        return self.content.features[featname]
+        try:
+            return self.content.features[featname]
+        except KeyError:
+            return None
 
     
     def __setitem__(self, featname, feat):
@@ -455,9 +457,11 @@ class Utterance(object):
         
     def __getitem__(self, featname):
         """ Returns the requested feature.
-            This raises KeyError when featname is not available..
         """
-        return self.features[featname]
+        try:
+            return self.features[featname]
+        except KeyError:
+            return None
 
     
     def __setitem__(self, featname, feat):
@@ -565,10 +569,9 @@ def traverse(item, pathstring):
             cmdstring += mapping[a] % b
         else:
             cmdstring += mapping[step]
-
     try:
         return eval(cmdstring)
-    except (TypeError, AttributeError, KeyError):
+    except (TypeError, AttributeError):
         raise TraversalError
 
 
