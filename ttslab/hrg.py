@@ -5,6 +5,9 @@
 """
 from __future__ import unicode_literals, division, print_function #Py2
 
+__author__ = "Daniel van Niekerk"
+__email__ = "dvn.demitasse@gmail.com"
+
 class DuplicateItemInRelation(Exception):
     pass
 
