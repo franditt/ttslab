@@ -5,13 +5,11 @@
 """
 from __future__ import unicode_literals, division, print_function #Py2
 
-
 class DuplicateItemInRelation(Exception):
     pass
 
 class TraversalError(Exception):
     pass
-
 
 class ItemContent(object):
     """ Stores the actual features of an Item and keeps track of Items
@@ -20,7 +18,6 @@ class ItemContent(object):
         This class essentially exists so that actual content referred
         to by Items can be shared by Items in different Relations.
     """
-
     def __init__(self):
 
         self.features = {}
