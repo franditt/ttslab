@@ -7,7 +7,10 @@
 
     TODO:
         - Better exception handling
-        - Improve lexlookup implementation
+        - Improve lexlookup implementation. Current implementation
+          first looks for a PronunciationDictionary object with
+          back-off to a simple Python dictionary with words as key to
+          a phone list for each entry.
 """
 from __future__ import unicode_literals, division, print_function #Py2
 
@@ -17,8 +20,8 @@ __email__ = "dvn.demitasse@gmail.com"
 import re
 from collections import OrderedDict
 
-#from g2p_rewrites import GraphemeNotDefined, NoRuleFound
-#from pronundict import PronunLookupError
+from g2p import GraphemeNotDefined, NoRuleFound
+from pronundict import PronunLookupError
 from voice import *
 from tokenizers import DefaultTokenizer
 
@@ -28,7 +31,6 @@ class DefaultVoice(Voice):
         processing.. Hopefully this will be useful enough for most
         languages to inherit from this...
     """
-
     PHRASING_PUNCTUATION = "!?.,:;"
 
     def __init__(self):
@@ -162,7 +164,7 @@ class DefaultVoice(Voice):
                     phones = self.lexicon[word_item["name"]] #try old-style dictionary...
                 except:
                     try:
-                        phones = self.g2p.predictWord(word_item["name"])
+                        phones = self.g2p.predict_word(word_item["name"])
                     except (GraphemeNotDefined, NoRuleFound):
                         print("WARNING: No pronunciation found for '%s'" % word_item["name"])
                         phones = [self.phoneset.features["silence_phone"]]
