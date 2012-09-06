@@ -7,7 +7,7 @@
 
     TODO:
         - Better exception handling
-        - Improve lexlookup implementation. Current implementation
+        - Improve phonetizer implementation. Current implementation
           first looks for a PronunciationDictionary object with
           back-off to a simple Python dictionary with words as key to
           a phone list for each entry.
@@ -20,10 +20,12 @@ __email__ = "dvn.demitasse@gmail.com"
 import re
 from collections import OrderedDict
 
-from g2p import GraphemeNotDefined, NoRuleFound
+import ttslab
+from g2p import G2P_Rewrites_Semicolon, GraphemeNotDefined, NoRuleFound
 from pronundict import PronunLookupError
 from voice import *
 from tokenizers import DefaultTokenizer
+#from synthesizer_us import SynthesizerUS
 
 class DefaultVoice(Voice):
     """ Creating this to implement some of the more generic
@@ -39,12 +41,12 @@ class DefaultVoice(Voice):
 
         #define processes for this voice:
         self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
-                                                        ("normalizer", "default"),
+                                                        ("normalizer", None),
                                                         ("phrasifier", None)]),
                           "text-to-segments": OrderedDict([("tokenizer", "default"),
-                                                           ("normalizer", "default"),
+                                                           ("normalizer", None),
                                                            ("phrasifier", None),
-                                                           ("lexlookup", None),
+                                                           ("phonetizer", None),
                                                            ("pauses", None)])}
         
         #setup utterance processors for this voice:
@@ -55,7 +57,7 @@ class DefaultVoice(Voice):
         #implementation:
         self.phoneset = None
         self.g2p = None
-        self.lexicon = None
+        self.pronundict = None
     
     #################### Lower level methods...
     def normalizer(self, utt, processname):
@@ -116,13 +118,13 @@ class DefaultVoice(Voice):
         return utt
 
 
-    def lexlookup(self, utt, processname):
+    def phonetizer(self, utt, processname):
         """ Applies G2P and Syllabification from 'Word' relation...
             DEMITASSE: code duplication - fix cases/switches...
         """
         word_rel = utt.get_relation("Word")
         if word_rel is None:
-            print("\n".join([self.lexlookup,
+            print("\n".join([self.phonetizer,
                              "\nError: Utterance needs to have 'Word' relation..."]))
             return
 
@@ -135,10 +137,10 @@ class DefaultVoice(Voice):
             else:
                 pos = None
             try:
-                word = self.lexicon.lookup(word_item["name"], pos)
+                word = self.pronundict.lookup(word_item["name"], pos)
             except PronunLookupError as e:
                 if e.value == "no_pos":
-                    word = self.lexicon.lookup(word_item["name"])
+                    word = self.pronundict.lookup(word_item["name"])
                 else:
                     word = None
             except AttributeError:
@@ -161,7 +163,7 @@ class DefaultVoice(Voice):
                         syltones = "0" * len(syllables)
             else:
                 try:
-                    phones = self.lexicon[word_item["name"]] #try old-style dictionary...
+                    phones = self.pronundict[word_item["name"]] #try old-style dictionary...
                 except:
                     try:
                         phones = self.g2p.predict_word(word_item["name"])
@@ -218,7 +220,6 @@ class DefaultVoice(Voice):
                 raise
             pause_item = last_seg.append_item()
             pause_item["name"] = silphone
-            
         return utt
             
 
@@ -235,6 +236,68 @@ class DefaultVoice(Voice):
         """ Apply synth pipeline to existing utt...
         """
         return self(utt, processname)
+
+
+class LwaziVoice(DefaultVoice):
+    """ Implementation of a basic voice with phoneset, pronundict and
+        g2p rules...
+    """
+    def __init__(self, phonesetfn, g2pfn, pronundictfn):
+        DefaultVoice.__init__(self)
+        self.phoneset = self._load_phoneset(phonesetfn)
+        self.g2p = self._load_g2p(g2pfn)
+        self.pronundict = self._load_pronundict(pronundictfn)
+    
+    def _load_phoneset(self, phonesetfn):
+        return ttslab.fromfile(phonesetfn)
+
+    def _load_g2p(self, g2pfn):
+        """ G2P rules contained in a pickled G2P_Rewrites_Semicolon
+            instance
+        """
+        return ttslab.fromfile(g2pfn)
+
+    def _load_pronundict(self, pronundictfn):
+        """ Pronundict contained in a pickled PronunciationDictionary
+            instance or simple Python dictionary...
+        """
+        return ttslab.fromfile(pronundictfn)
+
+
+class LwaziUSVoice(LwaziVoice):
+    """ Voice implementation using unit selection back-end...
+    """
+    def __init__(self, phonesetfn, g2pfn, pronundictfn, unitcataloguefn):
+        LwaziVoice.__init__(self, phonesetfn=phonesetfn, g2pfn=g2pfn, pronundictfn=pronundictfn)
+        
+        self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", None),
+                                                        ("phrasifier", None)]),
+                          "text-to-segments": OrderedDict([("tokenizer", "default"),
+                                                           ("normalizer", None),
+                                                           ("phrasifier", None),
+                                                           ("phonetizer", None),
+                                                           ("pauses", None)]),
+                          "text-to-units": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", None),
+                                                        ("phrasifier", None),
+                                                        ("phonetizer", None),
+                                                        ("pauses", None),
+                                                        ("synthesizer", "targetunits")]),
+                          "text-to-wave": OrderedDict([("tokenizer", "default"),
+                                                       ("normalizer", None),
+                                                       ("phrasifier", None),
+                                                       ("phonetizer", None),
+                                                       ("pauses", None),
+                                                       ("synthesizer", "synth")])}
+        self.synthesizer = USSynthesizer(self, unitcataloguefn=unitcataloguefn)
+
+    def say(self, inputstring):
+        """ Render the inputstring...
+        """
+        utt = self.synthesize(inputstring, "text-to-wave")
+        utt["waveform"].play()
+        return utt
 
 
 if __name__ == "__main__":
