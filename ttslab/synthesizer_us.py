@@ -23,6 +23,7 @@ from collections import OrderedDict
 import numpy as np
 from scipy.spatial.distance import cdist
 
+import ttslab
 from uttprocessor import *
 from waveform import Waveform
 
@@ -68,8 +69,7 @@ class SynthesizerUS(UttProcessor):
     def __init__(self, voice, unitcatalogue_location):
         UttProcessor.__init__(self, voice=voice)
 
-        with open(unitcatalogue_location) as infh:
-            self.unitcatalogue = pickle.load(infh)
+        self.unitcatalogue = ttslab.fromfile(infh)
 
         self.processes = {"targetunits": OrderedDict([("targetunits", None)]),
                           "selectunits": OrderedDict([("targetunits", None),
@@ -98,7 +98,11 @@ class SynthesizerUS(UttProcessor):
                                     unit_item["selected_unit"]["candidate"]["residuals"])
         unit_item = unit_item.next_item
         while unit_item is not None:
-            lpctrack.append(unit_item["selected_unit"]["candidate"]["lpc-coefs"])
+            temptrack = unit_item["selected_unit"]["candidate"]["lpc-coefs"]
+            #append lpccoefs to lpctrack:
+            lpctrack.times = np.concatenate((lpctrack.times, (temptrack.times + lpctrack.times[-1])))
+            lpctrack.values = np.concatenate((lpctrack.values, temptrack.values))
+            #append windowed residuals:
             residuals.extend(window_residual(unit_item["selected_unit"]["candidate"]["lpc-coefs"],
                                              unit_item["selected_unit"]["candidate"]["residuals"]))
             unit_item = unit_item.next_item

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-    Utilities used by ttslab...
+""" Utilities used by ttslab...
 """
 from __future__ import unicode_literals, division, print_function #Py2
 

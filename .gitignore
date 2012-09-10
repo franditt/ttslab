@@ -1,5 +1,4 @@
 *.pyc
-*.pickle
 .emacs.desktop
 *~
 __pycache__
