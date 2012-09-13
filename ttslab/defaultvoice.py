@@ -58,6 +58,7 @@ class DefaultVoice(Voice):
         self.phoneset = None
         self.g2p = None
         self.pronundict = None
+        self.pronunaddendum = None
     
     #################### Lower level methods...
     def normalizer(self, utt, processname):
@@ -120,7 +121,7 @@ class DefaultVoice(Voice):
 
     def phonetizer(self, utt, processname):
         """ Applies G2P and Syllabification from 'Word' relation...
-            DEMITASSE: code duplication - fix cases/switches...
+            DEMITASSE: REWRITE!
         """
         word_rel = utt.get_relation("Word")
         if word_rel is None:
@@ -132,12 +133,9 @@ class DefaultVoice(Voice):
         sylstruct_rel = utt.new_relation("SylStructure")
         seg_rel = utt.new_relation("Segment")
         for word_item in word_rel:
-            if "pos" in word_item:
-                pos = word_item["pos"]
-            else:
-                pos = None
             try:
-                word = self.pronundict.lookup(word_item["name"], pos)
+                if word_item["name"] in self.pronunaddendum: raise AttributeError # bad hack - need to rewrite phonetizer
+                word = self.pronundict.lookup(word_item["name"], word_item["pos"]) #pos will be None if nonexistant
             except PronunLookupError as e:
                 if e.value == "no_pos":
                     word = self.pronundict.lookup(word_item["name"])
@@ -163,13 +161,16 @@ class DefaultVoice(Voice):
                         syltones = "0" * len(syllables)
             else:
                 try:
-                    phones = self.pronundict[word_item["name"]] #try old-style dictionary...
-                except:
+                    phones = self.pronunaddendum[word_item["name"]] #try addendum
+                except KeyError:
                     try:
-                        phones = self.g2p.predict_word(word_item["name"])
-                    except (GraphemeNotDefined, NoRuleFound):
-                        print("WARNING: No pronunciation found for '%s'" % word_item["name"])
-                        phones = [self.phoneset.features["silence_phone"]]
+                        phones = self.pronundict[word_item["name"]] #try old-style dictionary...
+                    except:
+                        try:
+                            phones = self.g2p.predict_word(word_item["name"])
+                        except (GraphemeNotDefined, NoRuleFound):
+                            print("WARNING: No pronunciation found for '%s'" % word_item["name"])
+                            phones = [self.phoneset.features["silence_phone"]]
                 syllables = self.phoneset.syllabify(phones)
                 try:
                     syltones = self.phoneset.guess_sylstress(syllables)
@@ -242,11 +243,12 @@ class LwaziVoice(DefaultVoice):
     """ Implementation of a basic voice with phoneset, pronundict and
         g2p rules...
     """
-    def __init__(self, phonesetfn, g2pfn, pronundictfn):
+    def __init__(self, phonesetfn, g2pfn, pronundictfn, pronunaddendumfn):
         DefaultVoice.__init__(self)
         self.phoneset = self._load_phoneset(phonesetfn)
         self.g2p = self._load_g2p(g2pfn)
         self.pronundict = self._load_pronundict(pronundictfn)
+        self.pronunaddendum = self._load_pronundict(pronunaddendumfn)
     
     def _load_phoneset(self, phonesetfn):
         return ttslab.fromfile(phonesetfn)
@@ -254,21 +256,32 @@ class LwaziVoice(DefaultVoice):
     def _load_g2p(self, g2pfn):
         """ G2P rules contained in a pickled G2P_Rewrites_Semicolon
             instance
+            This function is a stub - eventually want to do some basic
+            compatibility check (with phoneset) here...
         """
         return ttslab.fromfile(g2pfn)
 
     def _load_pronundict(self, pronundictfn):
         """ Pronundict contained in a pickled PronunciationDictionary
             instance or simple Python dictionary...
+            This function is a stub - eventually want to do some basic
+            compatibility check (with phoneset) here...
         """
-        return ttslab.fromfile(pronundictfn)
+        try:
+            return ttslab.fromfile(pronundictfn)
+        except IOError:
+            return {}
 
 
 class LwaziUSVoice(LwaziVoice):
     """ Voice implementation using unit selection back-end...
     """
-    def __init__(self, phonesetfn, g2pfn, pronundictfn, unitcataloguefn):
-        LwaziVoice.__init__(self, phonesetfn=phonesetfn, g2pfn=g2pfn, pronundictfn=pronundictfn)
+    def __init__(self, phonesetfn, g2pfn, pronundictfn, pronunaddendumfn, unitcataloguefn):
+        LwaziVoice.__init__(self,
+                            phonesetfn=phonesetfn,
+                            g2pfn=g2pfn,
+                            pronundictfn=pronundictfn,
+                            pronunaddendumfn=pronunaddendumfn)
         
         self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
                                                         ("normalizer", None),
