@@ -120,7 +120,6 @@ class LwaziSothoPhoneset(Phoneset):
 
     def is_consonant(self, phonename):
         return "consonant" in self.phones[phonename]
-    
 
     def guess_sylstress(self, syllables):
         """ Try to guess tone pattern for an unknown word...
@@ -136,10 +135,10 @@ class LwaziSothoPhoneset(Phoneset):
         while phlist:
             phone = phlist[0]
 
-            if self.phoneIsSyllabicConsonant(phone):
+            if self.is_syllabicconsonant(phone):
                 #sC.Any
                 phone2 = phlist[1]
-                if self.phoneIsConsonant(phone2):
+                if self.is_consonant(phone2):
                     sylls[-1].append(phlist.pop(0))
                     if phlist: sylls.append([])
                     continue
@@ -148,9 +147,9 @@ class LwaziSothoPhoneset(Phoneset):
                 nphone = phlist[1]
                 nnphone = phlist[2]
                 #If there is a three phone cluster:
-                if (self.phoneIsVowel(phone) and
-                    not self.phoneIsVowel(nphone) and
-                    not self.phoneIsVowel(nnphone)):
+                if (self.is_vowel(phone) and
+                    not self.is_vowel(nphone) and
+                    not self.is_vowel(nnphone)):
                     #VC.C
                     sylls[-1].append(phlist.pop(0))#phone
                     sylls[-1].append(phlist.pop(0))#nphone
@@ -159,7 +158,7 @@ class LwaziSothoPhoneset(Phoneset):
             except IndexError:
                 pass
             
-            if self.phoneIsVowel(phone):
+            if self.is_vowel(phone):
                 #V.Any
                 sylls[-1].append(phlist.pop(0))
                 if phlist: sylls.append([])
@@ -168,5 +167,3 @@ class LwaziSothoPhoneset(Phoneset):
             #anything not caught above is added to current syl...
             sylls[-1].append(phlist.pop(0))
         return sylls
-
-        
