@@ -11,6 +11,7 @@
        - Clean up implementation: Initially the Viterbi used joincost
          and targetcost methods, however after optimisation, joinscore
          calculation was integrated into selectunits method.
+       - Rewrite code to use only numpy arrays cleanly...
 """
 from __future__ import unicode_literals, division, print_function #Py2
 
@@ -24,8 +25,8 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 import ttslab
-from uttprocessor import *
-from waveform import Waveform
+from . uttprocessor import *
+from . waveform import Waveform
 
 SAMPLERATE = 16000
 WINDOWFACTOR = 1
@@ -36,6 +37,7 @@ def window_residual(lpctrack, residual):
         times
         DEMITASSE: Review for possible off by one errors
     """
+    residual = residual.flatten()
     prevtime = 0.0
     residuals = []
     for i in range(len(lpctrack)):
@@ -66,10 +68,10 @@ class SynthesizerUS(UttProcessor):
         Provides:
                            ...
     """
-    def __init__(self, voice, unitcatalogue_location):
+    def __init__(self, voice, unitcatalogue):
         UttProcessor.__init__(self, voice=voice)
 
-        self.unitcatalogue = ttslab.fromfile(infh)
+        self.unitcatalogue = unitcatalogue
 
         self.processes = {"targetunits": OrderedDict([("targetunits", None)]),
                           "selectunits": OrderedDict([("targetunits", None),
@@ -103,7 +105,7 @@ class SynthesizerUS(UttProcessor):
             lpctrack.times = np.concatenate((lpctrack.times, (temptrack.times + lpctrack.times[-1])))
             lpctrack.values = np.concatenate((lpctrack.values, temptrack.values))
             #append windowed residuals:
-            residuals.extend(window_residual(unit_item["selected_unit"]["candidate"]["lpc-coefs"],
+            residuals.extend(window_residual(temptrack,
                                              unit_item["selected_unit"]["candidate"]["residuals"]))
             unit_item = unit_item.next_item
         

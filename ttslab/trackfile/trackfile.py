@@ -69,7 +69,7 @@ class Track(object):
     def name(self):
         try:
             return self._name
-        except AttributeErrror:
+        except AttributeError:
             return ""
 
     @name.setter
@@ -90,7 +90,11 @@ class Track(object):
         try:
             return self._starttime
         except AttributeError:
-            return self.times[0]
+            return 0.0
+
+    @starttime.setter
+    def starttime(self, starttime):
+        self._starttime = starttime
 
     @property
     def endtime(self):
@@ -107,7 +111,7 @@ class Track(object):
         """
         sr, s = scipy.io.wavfile.read(filepath)
         if len(s.shape) == 1:
-            self.values = self.values.reshape(-1, 1)
+            self.values = s.reshape(-1, 1)
         else:
             self.values = s
         self.times = np.arange(len(self.values)) * (sr**-1)
@@ -213,10 +217,27 @@ class Track(object):
             t.times = self.times[idxa:idxb]
         return t
 
-    def index_at(self, time):
+    def index_at(self, time, method="round"):
         """ Returns the index of the closest sample to 'time'...
+            method in ['round', 'ceil', 'floor']
         """
-        return np.abs(self.times - time).argmin()
+        diffs = self.times - time        
+        if method == "round":
+            return np.abs(diffs).argmin()
+        elif method == "ceil":
+            pdiffi = np.flatnonzero(diffs > 0.0)
+            try:
+                return pdiffi[0]
+            except IndexError:
+                return len(diffs)
+        elif method == "floor":
+            ndiffi = np.flatnonzero(diffs < 0.0)
+            try:
+                return ndiffi[-1]
+            except IndexError:
+                return 0
+        else:
+            raise Exception("Unsupported method: %s" % method)
 
     # INCLUDE WHEN UNITTESTS IMPLEMENTED
     # def index_at(self, time):

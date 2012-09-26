@@ -21,11 +21,11 @@ import re
 from collections import OrderedDict
 
 import ttslab
-from g2p import G2P_Rewrites_Semicolon, GraphemeNotDefined, NoRuleFound
-from pronundict import PronunLookupError
-from voice import *
-from tokenizers import DefaultTokenizer
-#from synthesizer_us import SynthesizerUS
+from . g2p import G2P_Rewrites_Semicolon, GraphemeNotDefined, NoRuleFound
+from . pronundict import PronunLookupError
+from . voice import *
+from . tokenizers import DefaultTokenizer
+from . synthesizer_us import SynthesizerUS
 
 class DefaultVoice(Voice):
     """ Creating this to implement some of the more generic
@@ -243,45 +243,22 @@ class LwaziVoice(DefaultVoice):
     """ Implementation of a basic voice with phoneset, pronundict and
         g2p rules...
     """
-    def __init__(self, phonesetfn, g2pfn, pronundictfn, pronunaddendumfn):
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum):
         DefaultVoice.__init__(self)
-        self.phoneset = self._load_phoneset(phonesetfn)
-        self.g2p = self._load_g2p(g2pfn)
-        self.pronundict = self._load_pronundict(pronundictfn)
-        self.pronunaddendum = self._load_pronundict(pronunaddendumfn)
-    
-    def _load_phoneset(self, phonesetfn):
-        return ttslab.fromfile(phonesetfn)
-
-    def _load_g2p(self, g2pfn):
-        """ G2P rules contained in a pickled G2P_Rewrites_Semicolon
-            instance
-            This function is a stub - eventually want to do some basic
-            compatibility check (with phoneset) here...
-        """
-        return ttslab.fromfile(g2pfn)
-
-    def _load_pronundict(self, pronundictfn):
-        """ Pronundict contained in a pickled PronunciationDictionary
-            instance or simple Python dictionary...
-            This function is a stub - eventually want to do some basic
-            compatibility check (with phoneset) here...
-        """
-        try:
-            return ttslab.fromfile(pronundictfn)
-        except IOError:
-            return {}
-
+        self.phoneset = phoneset
+        self.g2p = g2p
+        self.pronundict = pronundict
+        self.pronunaddendum = pronunaddendum
 
 class LwaziUSVoice(LwaziVoice):
     """ Voice implementation using unit selection back-end...
     """
-    def __init__(self, phonesetfn, g2pfn, pronundictfn, pronunaddendumfn, unitcataloguefn):
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, unitcatalogue):
         LwaziVoice.__init__(self,
-                            phonesetfn=phonesetfn,
-                            g2pfn=g2pfn,
-                            pronundictfn=pronundictfn,
-                            pronunaddendumfn=pronunaddendumfn)
+                            phoneset=phoneset,
+                            g2p=g2p,
+                            pronundict=pronundict,
+                            pronunaddendum=pronunaddendum)
         
         self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
                                                         ("normalizer", None),
@@ -303,7 +280,7 @@ class LwaziUSVoice(LwaziVoice):
                                                        ("phonetizer", None),
                                                        ("pauses", None),
                                                        ("synthesizer", "synth")])}
-        self.synthesizer = USSynthesizer(self, unitcataloguefn=unitcataloguefn)
+        self.synthesizer = SynthesizerUS(self, unitcatalogue=unitcatalogue)
 
     def say(self, inputstring):
         """ Render the inputstring...

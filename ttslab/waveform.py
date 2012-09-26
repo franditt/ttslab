@@ -15,6 +15,16 @@ except ImportError:
     AL = None
     import scipy.io.wavfile as wavfile
 
+def normrange(values, minval=-1.0, maxval=1.0):
+    if len(values.shape) == 1:
+        newvalues = values / (np.max(values) - np.min(values)) * (maxval - minval)
+        newvalues = newvalues - np.min(newvalues) + minval
+    else:
+        for i in range(values.shape[1]):
+            newvalues[:,i] = values[:,i] / (np.max(values[:,i]) - np.min(values[:,i])) * (maxval - minval)
+            newvalues[:,i] = newvalues[:,i] - np.min(newvalues[:,i]) + minval
+    return newvalues
+
 if AL:
     class Waveform(object):
         """ Simply holds waveforms in numpy arrays...
@@ -47,8 +57,12 @@ if AL:
             f.write_frames(self.samples)
             f.close()
 
-        def play(self):
-            AL.play(self.samples, self.samplerate)
+        def play(self, norm=True):
+            if norm:
+                samples = normrange(self.samples)
+            else:
+                samples = self.samples
+            AL.play(samples, self.samplerate)
 else:
     class Waveform(object):
         """ Simply holds waveforms in numpy arrays...
