@@ -18,39 +18,37 @@ from . uttprocessor import *
 from . hts_labels import *
 from . waveform import Waveform
 
-class SynthesizerHTS(UttProcessor):
+class SynthesizerHTSME(UttProcessor):
     """ Wraps the necessary methods to achieve synthesis by
         constructing a "full-context label" specification from
-        synthesised Utterance and calling the hts_engine (API v 1.05)
-        to synthesise from this given the trained model files.
-
-        Utt Requirements:
-                           ...
-                           ...
-
-        Provides:
-                           ...
+        synthesised Utterance and calling the hts_engine (with mixed
+        excitation modifications by Aby Louw) to synthesise from this
+        given the trained model files.
     """
 
-    # -td tree       : decision tree files for state duration                  [  N/A]
+    # -xm s          : filename of mixed excitation filter                     [  N/A]
+    # -xp s          : filename of pulse dispersion filter                     [  N/A]
+    # -tb tree       : decision tree files for band strenghts                  [  N/A]
     # -tm tree       : decision tree files for spectrum                        [  N/A]
     # -tf tree       : decision tree files for Log F0                          [  N/A]
     # -tl tree       : decision tree files for low-pass filter                 [  N/A]
+    # -mb pdf        : model files for band strenghts                          [  N/A]
     # -md pdf        : model files for state duration                          [  N/A]
     # -mm pdf        : model files for spectrum                                [  N/A]
     # -mf pdf        : model files for Log F0                                  [  N/A]
     # -ml pdf        : model files for low-pass filter                         [  N/A]
+    # -db win        : window files for calculation delta of band strengths    [  N/A]
     # -dm win        : window files for calculation delta of spectrum          [  N/A]
     # -df win        : window files for calculation delta of Log F0            [  N/A]
     # -dl win        : window files for calculation delta of low-pass filter   [  N/A]
     # -od s          : filename of output label with duration                  [  N/A]
     # -om s          : filename of output spectrum                             [  N/A]
     # -of s          : filename of output Log F0                               [  N/A]
+    # -ob s          : filename of output band strengths                       [  N/A]
     # -ol s          : filename of output low-pass filter                      [  N/A]
     # -or s          : filename of output raw audio (generated speech)         [  N/A]
     # -ow s          : filename of output wav audio (generated speech)         [  N/A]
     # -ot s          : filename of output trace information                    [  N/A]
-    # -qp s          : filename of input Log F0                                [  N/A]
     # -vp            : use phoneme alignment for duration                      [  N/A]
     # -i  i f1 .. fi : enable interpolation & specify number(i),coefficient(f) [    1][   1-- ]
     # -s  i          : sampling frequency                                      [16000][   1--48000]
@@ -62,38 +60,45 @@ class SynthesizerHTS(UttProcessor):
     # -r  f          : speech speed rate                                       [  1.0][ 0.0--10.0]
     # -fm f          : add half-tone                                           [  0.0][-24.0--24.0]
     # -u  f          : voiced/unvoiced threshold                               [  0.5][ 0.0--1.0]
+    # -eb tree       : decision tree files for GV of band strengths            [  N/A]
     # -em tree       : decision tree files for GV of spectrum                  [  N/A]
     # -ef tree       : decision tree files for GV of Log F0                    [  N/A]
     # -el tree       : decision tree files for GV of low-pass filter           [  N/A]
+    # -cb pdf        : filenames of GV for band strengths                      [  N/A]
     # -cm pdf        : filenames of GV for spectrum                            [  N/A]
     # -cf pdf        : filenames of GV for Log F0                              [  N/A]
     # -cl pdf        : filenames of GV for low-pass filter                     [  N/A]
+    # -jb f          : weight of GV for band strengths                         [  1.0][ 0.0--2.0]
     # -jm f          : weight of GV for spectrum                               [  1.0][ 0.0--2.0]
     # -jf f          : weight of GV for Log F0                                 [  1.0][ 0.0--2.0]
     # -jl f          : weight of GV for low-pass filter                        [  1.0][ 0.0--2.0]
     # -k  tree       : GV switch                                               [  N/A]
     # -z  i          : audio buffer size                                       [ 1600][   0--48000]
 
-
-    DEFAULT_PARMS = {"-td" : "%(models_dir)s/tree-dur.inf", 
+    DEFAULT_PARMS = {"-xm": "%(models_dir)s/mix_excitation_5filters_99taps_16Kz.txt",
+                     "-xp": "%(models_dir)s/pulsedispersion.impulseresponse16000.txt",
+                     "-tb": "%(models_dir)s/tree-str.inf",
+                     "-td" : "%(models_dir)s/tree-dur.inf", 
                      "-tm" : "%(models_dir)s/tree-mgc.inf",
                      "-tf" : "%(models_dir)s/tree-lf0.inf",
                      "-tl" : None,
+                     "-mb" : "%(models_dir)s/str.pdf",
                      "-md" : "%(models_dir)s/dur.pdf",
                      "-mm" : "%(models_dir)s/mgc.pdf",
                      "-mf" : "%(models_dir)s/lf0.pdf",
                      "-ml" : None,
+                     "-db" : "%(models_dir)s/str.win1 -db %(models_dir)s/str.win2 -db %(models_dir)s/str.win3",
                      "-dm" : "%(models_dir)s/mgc.win1 -dm %(models_dir)s/mgc.win2 -dm %(models_dir)s/mgc.win3",
                      "-df" : "%(models_dir)s/lf0.win1 -df %(models_dir)s/lf0.win2 -df %(models_dir)s/lf0.win3",
                      "-dl" : None,
                      "-od" : "%(tempolab_file)s",
                      "-om" : None,
                      "-of" : None,
+                     "-ob" : None,
                      "-ol" : None,
                      "-or" : None,
                      "-ow" : "%(tempwav_file)s",
                      "-ot" : None,
-                     "-qp" : None,
                      "-vp" : False,
                      "-i"  : None,
                      "-s"  : 16000,
@@ -105,12 +110,15 @@ class SynthesizerHTS(UttProcessor):
                      "-r"  : 1.0,
                      "-fm" : None,
                      "-u"  : None,
+                     "-eb" : "%(models_dir)s/tree-gv-str.inf",
                      "-em" : "%(models_dir)s/tree-gv-mgc.inf",
                      "-ef" : "%(models_dir)s/tree-gv-lf0.inf",
                      "-el" : None,
+                     "-cb" : "%(models_dir)s/gv-str.pdf",
                      "-cm" : "%(models_dir)s/gv-mgc.pdf",
                      "-cf" : "%(models_dir)s/gv-lf0.pdf",
                      "-cl" : None,
+                     "-jb" : None,
                      "-jm" : None,
                      "-jf" : None,
                      "-jl" : None,
@@ -119,12 +127,12 @@ class SynthesizerHTS(UttProcessor):
                      }
 
 
-    def __init__(self, voice, models_dir, hts_bin="hts_engine", engine_parms={}):
+    def __init__(self, voice, models_dir, hts_bin="hts_engine_me", engine_parms={}):
         UttProcessor.__init__(self, voice=voice)
 
         self.hts_bin = hts_bin
         self.models_dir = models_dir
-        self.engine_parms = SynthesizerHTS.DEFAULT_PARMS.copy()
+        self.engine_parms = SynthesizerHTSME.DEFAULT_PARMS.copy()
         self.engine_parms.update(engine_parms)
 
         self.processes = {"label_and_synth": OrderedDict([("hts_label", None),

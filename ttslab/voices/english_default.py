@@ -90,7 +90,7 @@ class LwaziEnglishPhoneset(Phoneset):
                        }
         self.map = {"pau":"pau",
                     "pau_cl":"pau_cl",
-                    "pau_gs":"pau_gs",
+                    "ʔ":"pau_gs",
                     "ə":"_",
                     "ɜ":"__",
                     "a":"a",
