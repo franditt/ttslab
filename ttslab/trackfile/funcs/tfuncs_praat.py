@@ -4,13 +4,12 @@
     Provides Track methods to extract features from wavefiles using
     Praat...and manipulate 1-d tracks...
 """
-### PYTHON2 ###
-from __future__ import unicode_literals, division, print_function
+from __future__ import unicode_literals, division, print_function #Py2
 
-import cPickle as pickle #Py2
-import os, sys; sys.path.append(os.environ.get("PYTTS_PYTHONPATH"))
-### PYTHON2 ###
+__author__ = "Daniel van Niekerk"
+__email__ = "dvn.demitasse@gmail.com"
 
+import os
 import math
 import re
 
@@ -19,7 +18,6 @@ import subprocess
 from tempfile import NamedTemporaryFile
 from scipy.interpolate import InterpolatedUnivariateSpline, UnivariateSpline
 
-import common
 from .. trackfile import Track
 
 PRAAT_BIN = "praat"
@@ -139,7 +137,7 @@ def get_f0(track, wavfilelocation, minpitch=DEF_MINPITCH, maxpitch=DEF_MAXPITCH,
     track.praattype = "PitchTier"
     track._starttime = starttime
     track._endtime = endtime
-    track.name = common.parse_path(wavfilelocation)["base"]
+    track.name = ".".join(os.path.basename(wavfilelocation).split(".")[:-1])
     if fixocterrs:
         #try to correct for octave errors:
         track.values[track.values > maxpitch] = track.values[track.values > maxpitch] / 2
@@ -190,7 +188,7 @@ def get_intensity(track, wavfilelocation, timestep=DEF_TIMESTEP, smoothingbandwi
     track.praattype = "IntensityTier"
     track._starttime = starttime
     track._endtime = endtime
-    track.name = common.parse_path(wavfilelocation)["base"]
+    track.name = ".".join(os.path.basename(wavfilelocation).split(".")[:-1])
 
 
 def trim_zeros(track, front=True, back=True):

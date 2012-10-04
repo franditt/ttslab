@@ -250,6 +250,12 @@ class LwaziVoice(DefaultVoice):
         self.pronundict = pronundict
         self.pronunaddendum = pronunaddendum
 
+        # We make these attributes of the voice directly as
+        # multilingual voices have more than one phoneset and we need
+        # to collect mappings and present a consistent interface.
+        self.phonemap = self.phoneset.map
+        self.phones = self.phoneset.phones
+
 class LwaziUSVoice(LwaziVoice):
     """ Voice implementation using unit selection back-end...
     """
@@ -288,6 +294,81 @@ class LwaziUSVoice(LwaziVoice):
         utt = self.synthesize(inputstring, "text-to-wave")
         utt["waveform"].play()
         return utt
+
+
+
+class LwaziHTSVoice(LwaziVoice):
+    """ Wraps the necessary methods to achieve synthesis by
+        constructing a "full-context label" specification from
+        synthesised Utterance and calling the hts_engine to synthesise
+        from this given the trained model files.
+    """
+    
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, synthesizer_hts):
+        LwaziVoice.__init__(self,
+                            phoneset=phoneset,
+                            g2p=g2p,
+                            pronundict=pronundict,
+                            pronunaddendum=pronunaddendum)
+        
+        self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", "default"),
+                                                        ("phrasifier", None)]),
+                          "text-to-segments": OrderedDict([("tokenizer", "default"),
+                                                           ("normalizer", "default"),
+                                                           ("phrasifier", None),
+                                                           ("phonetizer", None),
+                                                           ("pauses", None)]),
+                          "text-to-label": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", "default"),
+                                                        ("phrasifier", None),
+                                                        ("phonetizer", None),
+                                                        ("pauses", None),
+                                                        ("synthesizer", "label_only")]),
+                          "text-to-wave": OrderedDict([("tokenizer", "default"),
+                                                       ("normalizer", "default"),
+                                                       ("phrasifier", None),
+                                                       ("phonetizer", None),
+                                                       ("pauses", None),
+                                                       ("synthesizer", "label_and_synth")]),
+                          "utt-to-wave": OrderedDict([("synthesizer", "label_and_synth")])}
+
+
+        #setup uttprocessors:
+        self.synthesizer = synthesizer_hts
+        self.synthesizer.voice = self
+
+    #################### Voice setup methods...
+
+ 
+
+    #################### Lower level methods...
+    
+
+
+    #################### Higher level methods...
+    def synthesize(self, inputstring, processname="text-to-segments", htsparms={}):
+        """ Render the inputstring...
+        """
+        utt = self.create_utterance()
+        utt["text"] = inputstring
+        utt["htsparms"] = htsparms
+        utt = self(utt, processname)
+        return utt
+
+
+    def resynthesize(self, utt, processname="utt-to-wave", htsparms=None):
+        utt["htsparms"] = htsparms
+        return self(utt, processname)
+
+
+    def say(self, inputstring, htsparms={}):
+        """ Render the inputstring...
+        """
+        utt = self.synthesize(inputstring, "text-to-wave", htsparms=htsparms)
+        utt["waveform"].play()
+        return utt
+
 
 
 if __name__ == "__main__":
