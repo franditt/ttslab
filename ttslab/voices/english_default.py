@@ -91,50 +91,50 @@ class LwaziEnglishPhoneset(Phoneset):
         self.map = {"pau":"pau",
                     "pau_cl":"pau_cl",
                     "ʔ":"pau_gs",
-                    "ə":"_",
-                    "ɜ":"__",
-                    "a":"a",
-                    "ɑ":"aa",
-                    "aɪ":"ai",
-                    "aʊ":"au",
+                    "ə":"_",     #about
+                    "ɜ":"__",    #bird
+                    "a":"a",     #bad
+                    "ɑ":"aa",    #bard
+                    "aɪ":"ai",   #buy
+                    "aʊ":"au",   #cow
                     "b":"b",
-                    "tʃ":"ch",
+                    "tʃ":"ch",   #chin
                     "d":"d",
-                    "ð":"dh",
-                    "ɛ":"e",
-                    "ɛə":"e_",
-                    "eɪ":"ei",
+                    "ð":"dh",    #then
+                    "ɛ":"e",     #bed
+                    "ɛə":"e_",   #bare
+                    "eɪ":"ei",   #bay
                     "f":"f",
                     "g":"g",
                     "h":"h",
-                    "ɪ":"i",
-                    "ɪə":"i_",
-                    "i":"ii",
-                    "dʒ":"jh",
+                    "ɪ":"i",     #bid
+                    "ɪə":"i_",   #beer
+                    "i":"ii",    #bead
+                    "dʒ":"jh",   #edge
                     "k":"k",
                     "l":"l",
                     "m":"m",
                     "n":"n",
-                    "ŋ":"ng",
-                    "ɒ":"o",
-                    "ɔɪ":"oi",
-                    "ɔ":"oo",
-                    "əʊ":"ou",
+                    "ŋ":"ng",    #sing
+                    "ɒ":"o",     #pot
+                    "ɔɪ":"oi",   #boy
+                    "ɔ":"oo",    #port
+                    "əʊ":"ou",   #go
                     "p":"p",
-                    "ɹ":"r",
+                    "ɹ":"r",     #ray
                     "s":"s",
-                    "ʃ":"sh",
+                    "ʃ":"sh",    #she
                     "t":"t",
-                    "θ":"th",
-                    "ʊ":"u",
-                    "ʊə":"u_",
-                    "ʌ":"uh",
-                    "u":"uu",
+                    "θ":"th",    #thin
+                    "ʊ":"u",     #put
+                    "ʊə":"u_",   #poor
+                    "ʌ":"uh",    #bud
+                    "u":"uu",    #boot
                     "v":"v",
                     "w":"w",
-                    "j":"y",
+                    "j":"y",     #yes
                     "z":"z",
-                    "ʒ":"zh"
+                    "ʒ":"zh"     #beige
                     }
        
     def is_plosive(self, phonename):

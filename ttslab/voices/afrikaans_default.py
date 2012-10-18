@@ -92,49 +92,49 @@ class LwaziAfrikaansPhoneset(Phoneset):
         self.map = {"pau":"pau",
                     "pau_cl":"pau_cl",
                     "ʔ":"pau_gs",
-                    "ə":"_",
-                    "əi":"_i",
-                    "a":"a",
-                    "ai":"ai",
-                    "ɛ":"E",
-                    "œ":"_oe_",
-                    "əu":"_u",
-                    "œy":"_oe_y",
-                    "ŋ":"N",
-                    "ɔ":"O",
-                    "ɔi":"Oi",
-                    "ʃ":"S",
-                    "ʒ":"Z",
-                    "æ":"_ae_",
-                    "ɑː":"AA",
-                    "ɑːi":"AAi",
+                    "ə":"_",       #sin
+                    "əi":"_i",     #wyn
+                    "a":"a",       #man
+                    "ai":"ai",     #katjie
+                    "ɛ":"E",       #ken
+                    "œ":"_oe_",    #mus
+                    "əu":"_u",     #bou
+                    "œy":"_oe_y",  #huis
+                    "ŋ":"N",       #sing
+                    "ɔ":"O",       #son
+                    "ɔi":"Oi",     #potjie
+                    "ʃ":"S",       #chef
+                    "ʒ":"Z",       #mirage
+                    "æ":"_ae_",    #ek
+                    "ɑː":"AA",     #aan
+                    "ɑːi":"AAi",   #saai
                     "b":"b",
                     "d":"d",
-                    "iə":"i_",
-                    "øː":"_oo_",
+                    "iə":"i_",     #seer
+                    "øː":"_oo_",   #seun
                     "f":"f",
                     "g":"g",
                     "ɦ":"h_",
-                    "i":"i",
-                    "iu":"iu",
+                    "i":"i",       #sien
+                    "iu":"iu",     #meeu
                     "j":"j",
                     "k":"k",
                     "l":"l",
                     "m":"m",
                     "n":"n",
-                    "uə":"u_",
-                    "uəi":"u_i",
+                    "uə":"u_",     #room
+                    "uəi":"u_i",   #rooi
                     "p":"p",
                     "r":"r",
                     "s":"s",
                     "t":"t",
-                    "tʃ":"tS",
-                    "u":"u",
-                    "ui":"ui",
-                    "v":"v",
-                    "w":"w",
-                    "x":"x",
-                    "y":"y",
+                    "tʃ":"tS",     #tjek
+                    "u":"u",       #boek
+                    "ui":"ui",     #boei
+                    "v":"v",       #wens
+                    "w":"w",       #twee
+                    "x":"x",       #gee
+                    "y":"y",       #muur
                     "z":"z",
                     "xxx":"xxx"
                     }
