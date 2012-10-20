@@ -69,11 +69,6 @@ class DefaultVoice(Voice):
             locale specific implementations...
         """
         token_rel = utt.get_relation("Token")
-        if not token_rel:
-            print("\n".join([self.normalize,
-                             "\nError: Utterance needs to have 'Token' relation..."]))
-            return
-        
         word_rel = utt.new_relation("Word")
         for token_item in token_rel:
             tokentext = token_item["name"].lower() #lowercase token...
@@ -98,11 +93,6 @@ class DefaultVoice(Voice):
             return False
 
         word_rel = utt.get_relation("Word")
-        if word_rel is None:
-            print("\n".join([self.phrasify,
-                             "\nError: Utterance needs to have 'Word' relation..."]))
-            return
-        
         punctuation = self.PHRASING_PUNCTUATION
         phrase_rel = utt.new_relation("Phrase")
         phrase_item = phrase_rel.append_item()
@@ -124,11 +114,6 @@ class DefaultVoice(Voice):
             DEMITASSE: REWRITE!
         """
         word_rel = utt.get_relation("Word")
-        if word_rel is None:
-            print("\n".join([self.phonetizer,
-                             "\nError: Utterance needs to have 'Word' relation..."]))
-            return
-
         syl_rel = utt.new_relation("Syllable")
         sylstruct_rel = utt.new_relation("SylStructure")
         seg_rel = utt.new_relation("Segment")
@@ -195,12 +180,7 @@ class DefaultVoice(Voice):
         """ Insert pauses in the segment sequence where phrase breaks occur...
         """
         silphone = self.phoneset.features["silence_phone"]
-        
         seg_rel = utt.get_relation("Segment")
-        if seg_rel is None:
-            print("\n".join([self.pauses,
-                             "\nError: Utterance needs to have 'Segment' relation..."]))
-            return        
         #add pause at start of utterance...
         first_seg = seg_rel.head_item
         pause_item = first_seg.prepend_item()
@@ -255,6 +235,9 @@ class LwaziVoice(DefaultVoice):
         # to collect mappings and present a consistent interface.
         self.phonemap = self.phoneset.map
         self.phones = self.phoneset.phones
+
+
+
 
 class LwaziUSVoice(LwaziVoice):
     """ Voice implementation using unit selection back-end...
@@ -375,3 +358,122 @@ if __name__ == "__main__":
     v = DefaultVoice()
     u = v.synthesize("Hoe sê mens dit in Afrikaans?", "text-to-words")
     print(u)
+
+
+class LwaziMultiHTSVoice(LwaziHTSVoice):
+    
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum,
+                 engphoneset, engg2p, engpronundict,
+                 synthesizer_hts):
+        LwaziHTSVoice.__init__(self, phoneset=phoneset,
+                               g2p=g2p,
+                               pronundict=pronundict,
+                               pronunaddendum=pronunaddendum,
+                               synthesizer_hts=synthesizer_hts)
+        
+        self.engphoneset = engphoneset
+        self.engg2p = engg2p
+        self.engpronundict = engpronundict
+
+        self.phmap = dict(self.phoneset.map)
+        self.phmap.update([("eng_" + k, "eng_" + v) for k, v in self.engphoneset.map.iteritems()])
+        self.phones = dict(self.phoneset.phones)
+        self.phones.update([("eng_" + k, v) for k, v in self.engphoneset.map.iteritems()])
+
+
+    def normalizer(self, utt, processname):
+        """ words marked with a prepended pipe character "|" will be
+        marked as English...
+        """
+        token_rel = utt.get_relation("Token")
+        word_rel = utt.new_relation("Word")
+        for token_item in token_rel:
+            tokentext = token_item["name"].lower()
+            tokentextlist = tokentext.split("-")           #split tokens on dashes to create multiple words...
+            for wordname in tokentextlist:
+                if "ﬁ" in wordname:
+                    wordname = re.sub("ﬁ", "fi", wordname) #HACK to handle common ligature
+                word_item = word_rel.append_item()
+                if wordname.startswith("|"):
+                    word_item["lang"] = "eng"
+                    wordname = wordname[1:]
+                else:
+                    word_item["lang"] = "def" #default language...
+                word_item["name"] = wordname
+                token_item.add_daughter(word_item)
+        return utt
+
+
+    def phonetizer(self, utt, processname):
+        
+        def g2p(word, phoneset, pronundict, pronunaddendum, g2p):
+            syltones = None
+            syllables = None
+            if pronunaddendum and word["name"] in pronunaddendum:
+                    phones = pronunaddendum[word["name"]]
+                    syllables = phoneset.syllabify(phones)
+            else:
+                try:
+                    wordpronun = pronundict.lookup(word["name"], word["pos"])
+                except PronunLookupError as e:
+                    if e.value == "no_pos":
+                        wordpronun = self.pronundict.lookup(word_item["name"])
+                    else:
+                        wordpronun = None
+                except AttributeError:
+                    wordpronun = None
+                if wordpronun:
+                    if "syllables" in wordpronun:
+                        syllables = wordpronun["syllables"]
+                        syltones = wordpronun["syltones"] #None if doesn't exist
+                    else:
+                        phones = wordpronun["phones"]
+                        syllables = phoneset.syllabify(phones)
+                else:
+                    try:
+                        phones = pronundict[word["name"]]
+                    except KeyError:
+                        try:
+                            phones = g2p.predict_word(word["name"])
+                        except (GraphemeNotDefined, NoRuleFound):
+                            print("WARNING: No pronunciation found for '%s'" % word["name"])
+                            phones = [self.phoneset.features["silence_phone"]]
+                    syllables = phoneset.syllabify(phones)
+            if not syltones:
+                try:
+                    syltones = phoneset.guess_sylstress(syllables)
+                except AttributeError:
+                    syltones = "0" * len(syllables)
+            return syllables, syltones
+
+        word_rel = utt.get_relation("Word")
+        if word_rel is None:
+            print("\n".join([self.lexlookup,
+                             "\nError: Utterance needs to have 'Word' relation..."]))
+            return
+
+        syl_rel = utt.new_relation("Syllable")
+        sylstruct_rel = utt.new_relation("SylStructure")
+        seg_rel = utt.new_relation("Segment")
+        for word_item in word_rel:
+            if word_item["lang"] == "eng":
+                syllables, syltones = g2p(word_item, self.engphoneset, self.engpronundict, None, self.engg2p)
+                #rename phones:
+                for syl in syllables:
+                    for i in range(len(syl)):
+                        syl[i] = "eng_" + syl[i]
+            else:
+                syllables, syltones = g2p(word_item, self.phoneset, self.pronundict, self.pronunaddendum, self.g2p)
+
+            word_item_in_sylstruct = sylstruct_rel.append_item(word_item)
+            for syl, syltone in zip(syllables, syltones):
+                syl_item = syl_rel.append_item()
+                syl_item["name"] = "syl"
+                syl_item["stress"] = syltone
+                syl_item_in_sylstruct = word_item_in_sylstruct.add_daughter(syl_item)
+                
+                for phone in syl:
+                    seg_item = seg_rel.append_item()
+                    seg_item["name"] = phone
+                    seg_item_in_sylstruct = syl_item_in_sylstruct.add_daughter(seg_item)
+        return utt
