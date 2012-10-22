@@ -353,13 +353,6 @@ class LwaziHTSVoice(LwaziVoice):
         return utt
 
 
-
-if __name__ == "__main__":
-    v = DefaultVoice()
-    u = v.synthesize("Hoe sê mens dit in Afrikaans?", "text-to-words")
-    print(u)
-
-
 class LwaziMultiHTSVoice(LwaziHTSVoice):
     
     def __init__(self, phoneset, g2p, pronundict, pronunaddendum,
@@ -375,8 +368,8 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
         self.engg2p = engg2p
         self.engpronundict = engpronundict
 
-        self.phmap = dict(self.phoneset.map)
-        self.phmap.update([("eng_" + k, "eng_" + v) for k, v in self.engphoneset.map.iteritems()])
+        self.phonemap = dict(self.phoneset.map)
+        self.phonemap.update([("eng_" + k, "eng_" + v) for k, v in self.engphoneset.map.iteritems()])
         self.phones = dict(self.phoneset.phones)
         self.phones.update([("eng_" + k, v) for k, v in self.engphoneset.map.iteritems()])
 
@@ -447,11 +440,6 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
             return syllables, syltones
 
         word_rel = utt.get_relation("Word")
-        if word_rel is None:
-            print("\n".join([self.lexlookup,
-                             "\nError: Utterance needs to have 'Word' relation..."]))
-            return
-
         syl_rel = utt.new_relation("Syllable")
         sylstruct_rel = utt.new_relation("SylStructure")
         seg_rel = utt.new_relation("Segment")
@@ -477,3 +465,9 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
                     seg_item["name"] = phone
                     seg_item_in_sylstruct = syl_item_in_sylstruct.add_daughter(seg_item)
         return utt
+
+
+if __name__ == "__main__":
+    v = DefaultVoice()
+    u = v.synthesize("Hoe sê mens dit in Afrikaans?", "text-to-words")
+    print(u)

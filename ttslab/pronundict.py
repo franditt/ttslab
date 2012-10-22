@@ -11,6 +11,7 @@ __author__ = "Daniel van Niekerk"
 __email__ = "dvn.demitasse@gmail.com"
 
 import codecs
+import copy
 
 class PronunLookupError(Exception):
     def __init__(self, value):
@@ -164,8 +165,8 @@ class PronunciationDictionary(object):
         if not isinstance(entry, list):
             entry = [entry]
         if not pos:
-            return entry[0] #pos not important: return first word
+            return copy.deepcopy(entry[0]) #pos not important: return first word
         for word in entry:
             if pos == word["pos"]:
-                return word #first matching word
+                return copy.deepcopy(word) #first matching word
         raise PronunLookupError("no_pos")
