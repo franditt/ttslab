@@ -27,6 +27,7 @@ from scipy.spatial.distance import cdist
 import ttslab
 from . uttprocessor import *
 from . waveform import Waveform
+from . relp import synth_filter
 
 SAMPLERATE = 16000
 WINDOWFACTOR = 1
@@ -119,28 +120,12 @@ class SynthesizerUS(UttProcessor):
             residual[firstsample:firstsample+len(residuals[i])] += np.array(residuals[i])
 
         #synth filter:
-        samples = np.zeros(len(residual), dtype=np.int16)       #16bit samples
-        startsample_index = 0
-        for i, frame in enumerate(lpctrack.values):
-            try:
-                endsample_index = int((lpctrack.times[i] + lpctrack.times[i+1]) * SAMPLERATE) // 2
-            except IndexError:
-                endsample_index = len(residual)
-            if endsample_index > len(residual):
-                endsample_index = len(residual)
+        samples = synth_filter(lpctrack.times, lpctrack.values, residual.astype(np.float), SAMPLERATE)
 
-            for j in xrange(startsample_index, endsample_index):
-                s = 0.0
-                for k in xrange(1, len(frame)):
-                    if j - k > 0:
-                        s += frame[k] * samples[j - k]
-                samples[j] = np.int16(s) + residual[j]         #assuming 16bit samples
-
-            startsample_index = endsample_index
         #save in utterance:
         w = Waveform()
         w.samplerate = SAMPLERATE
-        w.samples = samples#.astype(np.float64) / (2**16 / 2) #16bit samples
+        w.samples = samples.astype("int16") #16bit samples
         w.channels = 1
         utt["waveform"] = w
         return utt
