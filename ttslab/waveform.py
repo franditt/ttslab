@@ -16,6 +16,7 @@ except ImportError:
     import scipy.io.wavfile as wavfile
 
 def normrange(values, minval=-1.0, maxval=1.0):
+    values = values.astype(np.float64)
     if len(values.shape) == 1:
         newvalues = values / (np.max(values) - np.min(values)) * (maxval - minval)
         newvalues = newvalues - np.min(newvalues) + minval
