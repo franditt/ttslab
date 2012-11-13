@@ -31,7 +31,7 @@ class LwaziSothoPhoneset(Phoneset):
                        "kʼ"     : set(["class_consonantal", "consonant", "manner_plosive", "place_velar", "ejective"]),
                        "kʰ"     : set(["class_consonantal", "consonant", "manner_plosive", "place_velar", "aspirated"]),
                        "kx"     : set(["class_consonantal", "consonant", "manner_affricate", "place_velar"]),
-                       "ǃ"      : set(["class_consonantal", "consonant", "manner_click", "place_post-alveolar"]),
+                       "!"      : set(["class_consonantal", "consonant", "manner_click", "place_post-alveolar"]),
                        "f"      : set(["class_consonantal", "consonant", "manner_fricative", "manner_strident", "place_labiodental"]),
                        "s"      : set(["class_consonantal", "consonant", "manner_fricative", "manner_strident", "place_alveolar"]),
                        "ʃ"      : set(["class_consonantal", "consonant", "manner_fricative", "place_post-alveolar"]),
@@ -76,7 +76,7 @@ class LwaziSothoPhoneset(Phoneset):
                     "kʼ":"k_e",
                     "kʰ":"k_h",
                     "kx":"kx",
-                    "ǃ":"_q",
+                    "!":"_q",
                     "f":"f",
                     "s":"s",
                     "ʃ":"S",
@@ -134,13 +134,15 @@ class LwaziSothoPhoneset(Phoneset):
             phone = phlist[0]
 
             if self.is_syllabicconsonant(phone):
-                #sC.Any
-                phone2 = phlist[1]
-                if self.is_consonant(phone2):
-                    sylls[-1].append(phlist.pop(0))
-                    if phlist: sylls.append([])
-                    continue
-
+                try:
+                    nphone = phlist[1]
+                    #syllabicC.C
+                    if self.is_consonant(nphone):
+                        sylls[-1].append(phlist.pop(0))
+                        if phlist: sylls.append([])
+                        continue
+                except IndexError:
+                    pass
             try:
                 nphone = phlist[1]
                 nnphone = phlist[2]
@@ -161,7 +163,6 @@ class LwaziSothoPhoneset(Phoneset):
                 sylls[-1].append(phlist.pop(0))
                 if phlist: sylls.append([])
                 continue
-            
             #anything not caught above is added to current syl...
             sylls[-1].append(phlist.pop(0))
         return sylls
