@@ -356,7 +356,7 @@ class LwaziHTSVoice(LwaziVoice):
 class LwaziMultiHTSVoice(LwaziHTSVoice):
     
     def __init__(self, phoneset, g2p, pronundict, pronunaddendum,
-                 engphoneset, engg2p, engpronundict,
+                 engphoneset, engg2p, engpronundict, engpronunaddendum,
                  synthesizer_hts):
         LwaziHTSVoice.__init__(self, phoneset=phoneset,
                                g2p=g2p,
@@ -367,6 +367,7 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
         self.engphoneset = engphoneset
         self.engg2p = engg2p
         self.engpronundict = engpronundict
+        self.engpronunaddendum = engpronunaddendum
 
         self.phonemap = dict(self.phoneset.map)
         self.phonemap.update([("eng_" + k, "eng_" + v) for k, v in self.engphoneset.map.iteritems()])
@@ -445,7 +446,7 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
         seg_rel = utt.new_relation("Segment")
         for word_item in word_rel:
             if word_item["lang"] == "eng":
-                syllables, syltones = g2p(word_item, self.engphoneset, self.engpronundict, None, self.engg2p)
+                syllables, syltones = g2p(word_item, self.engphoneset, self.engpronundict, self.engpronunaddendum, self.engg2p)
                 #rename phones:
                 for syl in syllables:
                     for i in range(len(syl)):
