@@ -9,11 +9,16 @@ __email__ = "dvn.demitasse@gmail.com"
 import os
 
 import numpy as np
+import wave
 try:
     import scikits.audiolab as AL
 except ImportError:
     AL = None
     import scipy.io.wavfile as wavfile
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import io.StringIO as StringIO
 
 def normrange(values, minval=-1.0, maxval=1.0):
     values = values.astype(np.float64)
@@ -25,6 +30,18 @@ def normrange(values, minval=-1.0, maxval=1.0):
             newvalues[:,i] = values[:,i] / (np.max(values[:,i]) - np.min(values[:,i])) * (maxval - minval)
             newvalues[:,i] = newvalues[:,i] - np.min(newvalues[:,i]) + minval
     return newvalues
+
+def riffstring(waveform):
+    f = StringIO.StringIO()
+    if waveform.samples.dtype == np.int16:
+        s = waveform.samples.tostring()
+    else:
+        s = (waveform.samples * 32767).astype(np.int16).tostring()
+    wf = wave.open(f, "w")
+    wf.setparams((1, 2, waveform.samplerate, len(waveform.samples), "NONE", "No compression"))
+    wf.writeframes(s)            
+    wf.close()
+    return f.getvalue()
 
 if AL:
     class Waveform(object):
@@ -64,6 +81,7 @@ if AL:
             else:
                 samples = self.samples
             AL.play(samples, self.samplerate)
+    Waveform.riffstring = riffstring
 else:
     class Waveform(object):
         """ Simply holds waveforms in numpy arrays...
@@ -90,3 +108,4 @@ else:
 
         def play(self):
             raise NotImplementedError
+    Waveform.riffstring = riffstring
