@@ -100,6 +100,20 @@ class PronunciationDictionary(object):
         """
         pass
 
+    def toscmfile(self, fn, phonemap=None):
+        with codecs.open(fn, "w", encoding="utf-8") as outfh:
+            for k in sorted(self):
+                entry = self[k]
+                if not isinstance(entry, list):
+                    entry = [entry]
+                for word in entry:
+                    text = '("%s" %s (%s))' % (word["name"], word["pos"], "%s")
+                    syltext = ""
+                    for syl, tone in zip(word["syllables"], word["syltones"]):
+                        syltext += "((%s) %s) " % (" ".join(syl), tone)
+                    text = text % syltext.strip() + "\n"
+                    outfh.write(text)
+
     def totextfile(self, fn, phonemap=None):
         with codecs.open(fn, "w", encoding="utf-8") as outfh:
             for k in sorted(self):
@@ -136,14 +150,22 @@ class PronunciationDictionary(object):
                 else:
                     syltones = None
                 if phonemap:
-                    phones = [phonemap[ph] for ph in elems[4:]]
+                    try:
+                        phones = [phonemap[ph] for ph in elems[4:]]
+                    except KeyError:
+                        print(line)
+                        raise
                 else:
                     phones = elems[4:]
                 syllables = []
                 for s in elems[3]:
                     syllables.append(phones[:int(s)])
                     for i in range(int(s)):
-                        phones.pop(0)
+                        try:
+                            phones.pop(0)
+                        except IndexError:
+                            print(line)
+                            raise
                 self.add_word(word, syllables, syltones, pos)
         return self
 
