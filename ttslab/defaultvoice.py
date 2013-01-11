@@ -377,7 +377,7 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
 
     def normalizer(self, utt, processname):
         """ words marked with a prepended pipe character "|" will be
-        marked as English...
+            marked as English...
         """
         token_rel = utt.get_relation("Token")
         word_rel = utt.new_relation("Word")

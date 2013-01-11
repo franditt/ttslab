@@ -9,6 +9,7 @@ __email__ = "dvn.demitasse@gmail.com"
 
 import re
 from .. phoneset import Phoneset
+from .. defaultvoice import LwaziMultiHTSVoice
 
 class LwaziZuluPhoneset(Phoneset):
     """ Developed for the Lwazi project...
@@ -169,4 +170,99 @@ class LwaziZuluPhoneset(Phoneset):
 
         return sylls
 
-        
+
+class LwaziZuluMultiHTSVoice(LwaziMultiHTSVoice):
+    #These are not all strictly conjunctions (some are motivated by
+    #simple analysis of pauses between breath groups in the Lwazi2 TTS
+    #corpus).
+    CONJUNCTIONS = ["ukuti", #that, in order that
+                    "kuko", "kumbe", #or either
+                    "nokuba", "nakuba", #whether
+                    "noko", "kantinoko", #yet, however, notwithstanding, still,
+                    "kepa", #but
+                    "funa", #lest
+                    "ngokuba", #for, because
+                    "nxa", "inxa", "umauxa", #if
+                    "ngako", #therefore
+                    "njengoba", #because; since
+                    "kube", "ukube" #that; so that; in order that; if
+                    "sase", #and then
+                    # the following added based on stats from the Lwazi2 TTS corpus:
+                    "noma", #or either (38%)
+                    "bese", #and then (65%)
+                    "uma", #if (18%)
+                    "kufanele", # -fanele + sjnc. or inf. must; need to; have to; ought to; should (40%)
+                    "ukuze", #so that; in order that (40%)
+                    "futhi", #and (24%)
+                    "kanye", #once (34%)
+                    "kumele", #represent; stand for (30%)
+                    "kodwa", #only, excepting that (50%)
+                    "ukuthi", #so that; in order that (3%)
+                    "ngoba", #for, because (35%)
+                    "kanti", #whereas (50%)
+                    "ngaphandle", # ~ kwa-/kuka- apart from; besides; except; without; unless
+                                  # ~ kwalokho apart from that; besides; otherwise (32%)
+                    "ngaphambi", #ahead; before; in front (33%)
+                    "lapho", #when, where (11%)
+                    "ukuba", #that; so that; in order that; if (12%)
+                    "nokuthi", #and; also; even to say (44%)
+                    "ikakhulukazi", "kakhulukazi" #especially; particularly; in particular (60%)
+                    "kuze", #so that; in order that (38%)
+                    "naye", #and him; and her; even he/him; even she/her; he too; she too; with him; with her (27%)
+                    "ngenxa" #~ ya- because of; on behalf of (21%)
+                    ]
+
+    def normalizer(self, utt, processname):
+        """ words marked with a prepended pipe character "|" and words
+            in the English pronunciation dictionary or addendum will
+            be marked as English...
+        """
+        token_rel = utt.get_relation("Token")
+        word_rel = utt.new_relation("Word")
+        for token_item in token_rel:
+            tokentext = token_item["name"]
+            if tokentext.upper() != tokentext and not "-" in tokentext:
+                tokentext = re.sub(r'(?<=.)([A-Z])', r'-\1', tokentext)
+            tokentext = tokentext.lower()
+            #print(tokentext)
+            tokentextlist = tokentext.split("-")           #split tokens on dashes to create multiple words...
+            for wordname in tokentextlist:
+                if "ﬁ" in wordname:
+                    wordname = re.sub("ﬁ", "fi", wordname) #HACK to handle common ligature
+                word_item = word_rel.append_item()
+                if wordname.startswith("|"):
+                    word_item["lang"] = "eng"
+                    wordname = wordname[1:]
+                elif (wordname in self.engpronunaddendum or wordname in self.engpronundict) and len(wordname) > 2 and wordname not in self.pronunaddendum:
+                    word_item["lang"] = "eng"
+                else:
+                    word_item["lang"] = "def" #default language...
+                word_item["name"] = wordname
+                token_item.add_daughter(word_item)
+        return utt
+
+
+    def phrasifier(self, utt, processname):
+        """ Determine phrases/phrase breaks in the utterance...
+        """
+        def anycharsin(s, stemplate):
+            for c in s:
+                if c in stemplate:
+                    return True
+            return False
+
+        word_rel = utt.get_relation("Word")
+        punctuation = self.PHRASING_PUNCTUATION
+        phrase_rel = utt.new_relation("Phrase")
+        phrase_item = phrase_rel.append_item()
+        phrase_item["name"] = "BB"
+        for word_item in word_rel:
+            phrase_item.add_daughter(word_item)
+            token_item = word_item.get_item_in_relation("Token").parent_item
+            if word_item.get_item_in_relation("Token") is token_item.last_daughter:
+                if word_item is not word_rel.tail_item:
+                    if (("postpunc" in token_item and anycharsin(token_item["postpunc"], punctuation)) or
+                        word_item.next_item["name"] in LwaziZuluMultiHTSVoice.CONJUNCTIONS):
+                        phrase_item = phrase_rel.append_item()
+                        phrase_item["name"] = "BB"
+        return utt
