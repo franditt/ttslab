@@ -25,7 +25,6 @@ from . g2p import G2P_Rewrites_Semicolon, GraphemeNotDefined, NoRuleFound
 from . pronundict import PronunLookupError
 from . voice import *
 from . tokenizers import DefaultTokenizer
-from . synthesizer_us import SynthesizerUS
 
 class DefaultVoice(Voice):
     """ Creating this to implement some of the more generic
@@ -51,7 +50,6 @@ class DefaultVoice(Voice):
         
         #setup utterance processors for this voice:
         self.tokenizer = DefaultTokenizer(self)
-
 
         #STUBS: these are minimum data requirements for this voice
         #implementation:
@@ -238,11 +236,10 @@ class LwaziVoice(DefaultVoice):
 
 
 
-
 class LwaziUSVoice(LwaziVoice):
     """ Voice implementation using unit selection back-end...
     """
-    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, unitcatalogue):
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, synthesizer):
         LwaziVoice.__init__(self,
                             phoneset=phoneset,
                             g2p=g2p,
@@ -269,7 +266,8 @@ class LwaziUSVoice(LwaziVoice):
                                                        ("phonetizer", None),
                                                        ("pauses", None),
                                                        ("synthesizer", "synth")])}
-        self.synthesizer = SynthesizerUS(self, unitcatalogue=unitcatalogue)
+        self.synthesizer = synthesizer
+        self.synthesizer.voice = self
 
     def say(self, inputstring):
         """ Render the inputstring...
@@ -279,6 +277,43 @@ class LwaziUSVoice(LwaziVoice):
         return utt
 
 
+class WordUSVoice(LwaziVoice):
+    """ Wraps the necessary methods to achieve synthesis by unit
+        selection from a unitcatalogue...
+    """
+    
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, synthesizer, silword="PAUSE"):
+        LwaziVoice.__init__(self,
+                            phoneset=phoneset,
+                            g2p=g2p,
+                            pronundict=pronundict,
+                            pronunaddendum=pronunaddendum)
+        
+        self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", "default"),
+                                                        ("phrasifier", None),
+                                                        ("pauses", None)]),
+                          "text-to-segments": OrderedDict([("tokenizer", "default"),            #only for building stage...
+                                                           ("normalizer", "default"),
+                                                           ("phrasifier", None),
+                                                           ("pauses", None),
+                                                           ("phonetizer", None),
+                                                           ("synthesizer", "targetunits")]),
+                          "text-to-units": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", "default"),
+                                                        ("phrasifier", None),
+                                                        ("pauses", None),
+                                                        ("synthesizer", "targetunits")]),
+                          "text-to-wave": OrderedDict([("tokenizer", "default"),
+                                                       ("normalizer", "default"),
+                                                       ("phrasifier", None),
+                                                       ("pauses", None),
+                                                       ("synthesizer", "synth")])}
+        self.silword = silword
+        #setup uttprocessors:
+        self.synthesizer = synthesizer
+        self.synthesizer.voice = self
+
 
 class LwaziHTSVoice(LwaziVoice):
     """ Wraps the necessary methods to achieve synthesis by
@@ -287,7 +322,7 @@ class LwaziHTSVoice(LwaziVoice):
         from this given the trained model files.
     """
     
-    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, synthesizer_hts):
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, synthesizer):
         LwaziVoice.__init__(self,
                             phoneset=phoneset,
                             g2p=g2p,
@@ -318,7 +353,7 @@ class LwaziHTSVoice(LwaziVoice):
 
 
         #setup uttprocessors:
-        self.synthesizer = synthesizer_hts
+        self.synthesizer = synthesizer
         self.synthesizer.voice = self
 
     #################### Voice setup methods...
@@ -357,12 +392,12 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
     
     def __init__(self, phoneset, g2p, pronundict, pronunaddendum,
                  engphoneset, engg2p, engpronundict, engpronunaddendum,
-                 synthesizer_hts):
+                 synthesizer):
         LwaziHTSVoice.__init__(self, phoneset=phoneset,
                                g2p=g2p,
                                pronundict=pronundict,
                                pronunaddendum=pronunaddendum,
-                               synthesizer_hts=synthesizer_hts)
+                               synthesizer=synthesizer)
         
         self.engphoneset = engphoneset
         self.engg2p = engg2p

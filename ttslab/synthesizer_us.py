@@ -224,11 +224,14 @@ class SynthesizerUS(UttProcessor):
             index += 1
             unit_item = unit_item.next_item
             
-        #put (approximate) endtimes in segs:
-        starttime = 0.0
-        for seg in utt.gr("Segment"):
-            seg["end"] = starttime + sum([unit["selected_unit"]["candidate"]["dur"] for unit in seg.get_daughters()])
-            starttime = seg["end"]
+        ### DEMITASSE: this block needs to live somewhere else, this
+        ### method needs to be independent of unit type...
+        # #put (approximate) endtimes in segs:
+        # starttime = 0.0
+        # for seg in utt.gr("Segment"):
+        #     seg["end"] = starttime + sum([unit["selected_unit"]["candidate"]["dur"] for unit in seg.get_daughters()])
+        #     starttime = seg["end"]
+
         return utt
 
     def targetunits(self, utt, processname):
@@ -386,3 +389,46 @@ class SynthesizerUS(UttProcessor):
 
     #     #6 is a scaling factor...
     #     return 6 / (6 + euclidian_distance)
+
+
+class SynthesizerUSWordUnits(SynthesizerUS):        
+
+    def targetunits(self, utt, processname):
+        """ Create target units for synthesis.. (words)
+        """
+        
+        unit_rel = utt.new_relation("Unit")
+
+        wordseq = utt.gr("Word").as_list()
+        for i, word in enumerate(wordseq):
+            try:
+                context_nextword = word.next_item["name"]
+            except TypeError:
+                context_nextword = None 
+            try:
+                context_prevword = word.prev_item["name"]
+            except TypeError:
+                context_prevword = None
+            
+            unit_item = unit_rel.append_item()
+            unit_item["name"] = word["name"]
+            unit_item["context_prevword"] = context_prevword
+            unit_item["context_nextword"] = context_nextword
+                
+        return utt
+
+    #################### Lower lower level methods...
+        
+    def targetscore(self, targetunit, candidateunit):
+        """ Calculates a (crude) value representing a level of match
+            between target and candidate units, based on linguistic
+            questions... value range: [0.0, 1.0]
+        """
+        score = 0.0
+
+        if targetunit["context_prevword"] == candidateunit["context_prevword"]:
+            score += 0.5
+        if targetunit["context_nextword"] == candidateunit["context_nextword"]:
+            score += 0.5
+        
+        return score
