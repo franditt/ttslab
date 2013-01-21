@@ -315,6 +315,40 @@ class WordUSVoice(LwaziVoice):
         self.synthesizer.voice = self
 
 
+    def pauses(self, utt, processname):
+        """ Insert pauses in the word sequence where phrase breaks occur...
+        """
+        
+        word_rel = utt.get_relation("Word")
+        if word_rel is None:
+            print("\n".join([self.pauses,
+                             "\nError: Utterance needs to have 'Word' relation..."]))
+            return
+
+        #add pause at start of utterance...
+        first_word = word_rel.head_item
+        pause_item = first_word.prepend_item()
+        pause_item["name"] = self.silword
+        ###
+
+        phr_rel = utt.get_relation("Phrase")
+        if phr_rel is None:
+            print("\n".join([self.pauses,
+                             "\nError: Utterance needs to have 'Phrase' relation..."]))
+            return
+        #add pauses at end of each phrase..
+        for phr_item in phr_rel:
+            try:
+                last_word = phr_item.last_daughter.get_item_in_relation("Word")
+            except:
+                print(utt)
+                raise
+            pause_item = last_word.append_item()
+            pause_item["name"] = self.silword
+            
+        return utt
+
+
 class LwaziHTSVoice(LwaziVoice):
     """ Wraps the necessary methods to achieve synthesis by
         constructing a "full-context label" specification from
