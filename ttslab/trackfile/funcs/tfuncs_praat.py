@@ -83,9 +83,11 @@ endfor
 
 
 
-def get_f0(track, wavfilelocation, minpitch=DEF_MINPITCH, maxpitch=DEF_MAXPITCH, timestep=DEF_TIMESTEP, fixocterrs=False, smoothingbandwidth=None):
+def get_f0(track, wavfilelocation, minpitch=DEF_MINPITCH, maxpitch=DEF_MAXPITCH, timestep=DEF_TIMESTEP, fixocterrs=False, smoothingbandwidth=None, semitones=False):
     """Use "praat" to extract pitch contour...
     """
+    minpitch = float(minpitch)
+    maxpitch = float(maxpitch)
 
     wavfilelocation = os.path.abspath(wavfilelocation)
     if fixocterrs:
@@ -132,16 +134,22 @@ def get_f0(track, wavfilelocation, minpitch=DEF_MINPITCH, maxpitch=DEF_MAXPITCH,
             values.append(0.0)
         times.append(float(time))
 
+    track.minpitch = minpitch
+    track.maxpitch = maxpitch
     track.times = np.array(times)
     track.values = np.array(values).reshape(-1, 1)
     track.praattype = "PitchTier"
     track._starttime = starttime
     track._endtime = endtime
-    track.name = ".".join(os.path.basename(wavfilelocation).split(".")[:-1])
+    track.name = os.path.splitext(os.path.basename(wavfilelocation))[0]
     if fixocterrs:
         #try to correct for octave errors:
         track.values[track.values > maxpitch] = track.values[track.values > maxpitch] / 2
         track.values[track.values < minpitch] = track.values[track.values < minpitch] * 2
+    if semitones:
+        track.values[track.values.nonzero()] = 12.0 * np.log2(track.values[track.values.nonzero()]) # 12 * log2 (F0 / F0reference) where F0reference = 1
+        track.minpitch = 12.0 * np.log2(track.minpitch)
+        track.maxpitch = 12.0 * np.log2(track.maxpitch)
         
 
 def get_intensity(track, wavfilelocation, timestep=DEF_TIMESTEP, smoothingbandwidth=DEF_BANDWIDTH):
@@ -188,7 +196,7 @@ def get_intensity(track, wavfilelocation, timestep=DEF_TIMESTEP, smoothingbandwi
     track.praattype = "IntensityTier"
     track._starttime = starttime
     track._endtime = endtime
-    track.name = ".".join(os.path.basename(wavfilelocation).split(".")[:-1])
+    track.name = os.path.splitext(os.path.basename(wavfilelocation))[0]
 
 
 def trim_zeros(track, front=True, back=True):

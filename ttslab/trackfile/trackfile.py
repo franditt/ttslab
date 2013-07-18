@@ -53,7 +53,7 @@ class Track(object):
         self.values = np.array([]).reshape((0,0))
         self.times = np.array([])
         if name is not None:
-            self.name = name
+            self._name = name
 
     def __len__(self):
         return len(self.times)
@@ -62,8 +62,8 @@ class Track(object):
         return "\n".join(["name:        " + self.name,
                           "numchannels: " + str(self.numchannels),
                           "numframes:   " + str(self.numframes),
-                          "t0:          " + str(self.starttime),
-                          "tn:          " + str(self.endtime)])
+                          "starttime:   " + str(self.starttime),
+                          "endtime:     " + str(self.endtime)])
 
     @property
     def name(self):

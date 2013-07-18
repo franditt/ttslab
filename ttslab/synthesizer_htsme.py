@@ -222,3 +222,43 @@ class SynthesizerHTSME(UttProcessor):
         os.remove(tempilab_file)
 
         return utt
+
+class SynthesizerHTSME_p(SynthesizerHTSME):
+
+    def hts_label(self, utt, processname):
+        lab = []
+        starttime = 0
+        for phone_item in utt.get_relation("Segment"):
+            if "end" in phone_item:
+                endtime = float_to_htk_int(phone_item["end"])
+            else:
+                endtime = None
+            phlabel = p(phone_item)
+            if endtime is not None:
+                lab.append("%s %s " % (str(starttime).rjust(10), str(endtime).rjust(10)) + phlabel)
+            else:
+                lab.append(phlabel)
+            starttime = endtime
+
+        utt["hts_label"] = lab
+        return utt
+
+class SynthesizerHTSME_monolabel(SynthesizerHTSME):
+
+    def hts_label(self, utt, processname):
+        lab = []
+        starttime = 0
+        for phone_item in utt.get_relation("Segment"):
+            if "end" in phone_item:
+                endtime = float_to_htk_int(phone_item["end"])
+            else:
+                endtime = None
+            phlabel = utt.voice.phoneset.map[phone_item["name"]]
+            if endtime is not None:
+                lab.append("%s %s " % (str(starttime).rjust(10), str(endtime).rjust(10)) + phlabel)
+            else:
+                lab.append(phlabel)
+            starttime = endtime
+
+        utt["hts_label"] = lab
+        return utt

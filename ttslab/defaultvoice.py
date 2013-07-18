@@ -19,6 +19,7 @@ __email__ = "dvn.demitasse@gmail.com"
 
 import re
 from collections import OrderedDict
+import unicodedata
 
 import ttslab
 from . g2p import G2P_Rewrites_Semicolon, GraphemeNotDefined, NoRuleFound
@@ -69,13 +70,12 @@ class DefaultVoice(Voice):
         token_rel = utt.get_relation("Token")
         word_rel = utt.new_relation("Word")
         for token_item in token_rel:
-            tokentext = token_item["name"].lower() #lowercase token...
-            tokentextlist = tokentext.split("-")   #split tokens on dashes to create multiple words...
+            tokentext = token_item["name"].lower()
+            tokentextlist = tokentext.split("-")   #split tokens on dashes to create multiple words...revisit
             for wordname in tokentextlist:
-                if "ﬁ" in wordname:                
-                    #HACK: need to implement better mechanism to deal
-                    #with ligatures etc.
-                    wordname = re.sub("ﬁ", "fi", wordname)
+                #tokenizer does NFKD and all pronun resources are in
+                #NFC:
+                wordname = unicodedata.normalize("NFC", wordname) 
                 word_item = word_rel.append_item()
                 word_item["name"] = wordname
                 token_item.add_daughter(word_item)
@@ -181,7 +181,12 @@ class DefaultVoice(Voice):
         seg_rel = utt.get_relation("Segment")
         #add pause at start of utterance...
         first_seg = seg_rel.head_item
-        pause_item = first_seg.prepend_item()
+        try:
+            pause_item = first_seg.prepend_item()
+        except AttributeError:
+            print("WARNING: Utterance seems to have no valid segments...")
+            pause_item = seg_rel.append_item()
+            #raise ttslab.SynthesisError("Utterance seems to have no valid segments...")
         pause_item["name"] = silphone
         ###
 
@@ -194,11 +199,11 @@ class DefaultVoice(Voice):
         for phr_item in phr_rel:
             try:
                 last_seg = phr_item.last_daughter.get_item_in_relation("SylStructure").last_daughter.last_daughter.get_item_in_relation("Segment")
-            except:
-                print(utt)
-                raise
-            pause_item = last_seg.append_item()
-            pause_item["name"] = silphone
+                pause_item = last_seg.append_item()
+                pause_item["name"] = silphone
+            except AttributeError:
+                print("WARNING: Could not find last segment in phrase...")
+                #raise ttslab.SynthesisError("Could not find last segment in phrase...")
         return utt
             
 
@@ -383,6 +388,7 @@ class LwaziHTSVoice(LwaziVoice):
                                                        ("phonetizer", None),
                                                        ("pauses", None),
                                                        ("synthesizer", "label_and_synth")]),
+                          "utt-to-label": OrderedDict([("synthesizer", "label_only")]),
                           "utt-to-wave": OrderedDict([("synthesizer", "label_and_synth")])}
 
 
@@ -452,10 +458,11 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
         word_rel = utt.new_relation("Word")
         for token_item in token_rel:
             tokentext = token_item["name"].lower()
-            tokentextlist = tokentext.split("-")           #split tokens on dashes to create multiple words...
+            tokentextlist = tokentext.split("-")  #split tokens on dashes to create multiple words...revisit
             for wordname in tokentextlist:
-                if "ﬁ" in wordname:
-                    wordname = re.sub("ﬁ", "fi", wordname) #HACK to handle common ligature
+                #tokenizer does NFKD and all pronun resources are in
+                #NFC:
+                wordname = unicodedata.normalize("NFC", wordname) 
                 word_item = word_rel.append_item()
                 if wordname.startswith("|"):
                     word_item["lang"] = "eng"

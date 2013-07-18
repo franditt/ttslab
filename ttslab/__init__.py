@@ -11,6 +11,8 @@ try:
 except ImportError:
     import pickle
 
+class SynthesisError(Exception):
+    pass
 
 def extend(cls, module_name):
     exec("import " + module_name)
