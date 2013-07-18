@@ -1,2 +1,8 @@
  - Fix importing convention (relative/absolute)
- - 
+
+ - Overhaul/refactor frontend: normalisation, language identification,
+   phonetisation, syllabification and stress/tone assignment -- after
+   Yoruba lessons learnt... (after PhD)
+
+ - Consider moving some components (e.g. Yoruba tokenizer in
+   tokenizers.py)
