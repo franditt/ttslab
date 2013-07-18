@@ -8,6 +8,7 @@ __author__ = "Daniel van Niekerk"
 __email__ = "dvn.demitasse@gmail.com"
 
 import re
+import unicodedata
 from .. phoneset import Phoneset
 from .. defaultvoice import LwaziMultiHTSVoice
 
@@ -221,14 +222,17 @@ class LwaziZuluMultiHTSVoice(LwaziMultiHTSVoice):
         word_rel = utt.new_relation("Word")
         for token_item in token_rel:
             tokentext = token_item["name"]
+             #crude morph decomposition based on uppercase in word,
+             #inserts dashes (e.g. KwaZulu --> Kwa-Zulu):
             if tokentext.upper() != tokentext and not "-" in tokentext:
                 tokentext = re.sub(r'(?<=.)([A-Z])', r'-\1', tokentext)
             tokentext = tokentext.lower()
             #print(tokentext)
             tokentextlist = tokentext.split("-")           #split tokens on dashes to create multiple words...
             for wordname in tokentextlist:
-                if "ﬁ" in wordname:
-                    wordname = re.sub("ﬁ", "fi", wordname) #HACK to handle common ligature
+                #tokenizer does NFKD and all pronun resources are in
+                #NFC:
+                wordname = unicodedata.normalize("NFC", wordname) 
                 word_item = word_rel.append_item()
                 if wordname.startswith("|"):
                     word_item["lang"] = "eng"
@@ -240,7 +244,6 @@ class LwaziZuluMultiHTSVoice(LwaziMultiHTSVoice):
                 word_item["name"] = wordname
                 token_item.add_daughter(word_item)
         return utt
-
 
     def phrasifier(self, utt, processname):
         """ Determine phrases/phrase breaks in the utterance...
