@@ -40,9 +40,9 @@ class LwaziAfrikaansPhoneset(Phoneset):
                                                 self.features["wellformed_other_clusters"] +
                                                 self.features["wellformed_s_clusters"])
         self.features["silence_phone"] = "pau"
-        self.features["closure_phone"] = "pau_cl"
+        self.features["closure_phone"] = "paucl"
         self.phones = {"pau"    : set(["pause"]),
-                       "pau_cl" : set(["closure"]),
+                       "paucl"  : set(["closure"]),
                        "ʔ"      : set(["glottal-stop"]),
                        "ə"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_mid", "position_central"]),
                        "əi"     : set(["class_sonorant", "class_syllabic", "vowel", "duration_diphthong"]),
@@ -90,31 +90,31 @@ class LwaziAfrikaansPhoneset(Phoneset):
                        "z"      : set(["class_consonantal", "consonant", "manner_fricative", "manner_strident", "place_alveolar", "voiced"])
                        }
         self.map = {"pau":"pau",
-                    "pau_cl":"pau_cl",
-                    "ʔ":"pau_gs",
-                    "ə":"_",       #sin
-                    "əi":"_i",     #wyn
+                    "paucl":"paucl",
+                    "ʔ":"paugs",
+                    "ə":"q",       #sin
+                    "əi":"qi",     #wyn
                     "a":"a",       #man
                     "ai":"ai",     #katjie
                     "ɛ":"E",       #ken
-                    "œ":"_oe_",    #mus
-                    "əu":"_u",     #bou
-                    "œy":"_oe_y",  #huis
+                    "œ":"qoeq",    #mus
+                    "əu":"qu",     #bou
+                    "œy":"qoeqy",  #huis
                     "ŋ":"N",       #sing
                     "ɔ":"O",       #son
                     "ɔi":"Oi",     #potjie
                     "ʃ":"S",       #chef
                     "ʒ":"Z",       #mirage
-                    "æ":"_ae_",    #ek
+                    "æ":"qaeq",    #ek
                     "ɑː":"AA",     #aan
                     "ɑːi":"AAi",   #saai
                     "b":"b",
                     "d":"d",
-                    "iə":"i_",     #seer
-                    "øː":"_oo_",   #seun
+                    "iə":"iq",     #seer
+                    "øː":"qooq",   #seun
                     "f":"f",
                     "g":"g",
-                    "ɦ":"h_",
+                    "ɦ":"hq",
                     "i":"i",       #sien
                     "iu":"iu",     #meeu
                     "j":"j",
@@ -122,8 +122,8 @@ class LwaziAfrikaansPhoneset(Phoneset):
                     "l":"l",
                     "m":"m",
                     "n":"n",
-                    "uə":"u_",     #room
-                    "uəi":"u_i",   #rooi
+                    "uə":"uq",     #room
+                    "uəi":"uqi",   #rooi
                     "p":"p",
                     "r":"r",
                     "s":"s",
