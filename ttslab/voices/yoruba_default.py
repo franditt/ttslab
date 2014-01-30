@@ -25,6 +25,9 @@ from ttslab.waveform import Waveform
 from ttslab.trackfile import Track
 from .. pronundict import PronunLookupError
 
+## SOME UPDATES REVERTED IN ORDER TO PROCESS LEGACY DATA
+
+
 class YorubaPhoneset(Phoneset):
     """ Developed for PhD studies, based on Yoruba data received from
         Etienne Barnard...
@@ -51,7 +54,7 @@ class YorubaPhoneset(Phoneset):
                        "i"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_high", "position_front"]),
                        "ĩ"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_high", "position_front", "articulation_nasalized"]),
                        "o"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_mid", "position_back", "articulation_rounded"]),
-#                       "õ"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_mid", "position_back", "articulation_rounded", "articulation_nasalized"]), 
+                       "õ"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_mid", "position_back", "articulation_rounded", "articulation_nasalized"]), 
                        "ɔ"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_mid", "position_back", "articulation_rounded"]),
                        "ɔ̃"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_mid", "position_back", "articulation_rounded", "articulation_nasalized"]),
                        "u"      : set(["class_sonorant", "class_syllabic", "vowel", "duration_short", "height_high", "position_back"]),
@@ -87,7 +90,7 @@ class YorubaPhoneset(Phoneset):
                     "i"      : "i",
                     "ĩ"      : "in",
                     "o"      : "o",
-#                    "õ"      : "on",
+                    "õ"      : "on",
                     "ɔ"      : "O",
                     "ɔ̃"      : "On",
                     "u"      : "u",
@@ -143,14 +146,14 @@ class YorubaPhoneset(Phoneset):
                 ##DEMITASSE: Yoruba doesn't seem to have these:
                 ##########
                 # #If there is a three phone cluster:
-                # if (self.is_vowel(phone) and
-                #     not self.is_vowel(nphone) and
-                #     not self.is_vowel(nnphone)):
-                #     #VC.C
-                #     sylls[-1].append(phlist.pop(0))#phone
-                #     sylls[-1].append(phlist.pop(0))#nphone
-                #     if phlist: sylls.append([])
-                #     continue
+                if (self.is_vowel(phone) and
+                    not self.is_vowel(nphone) and
+                    not self.is_vowel(nnphone)):
+                    #VC.C
+                    sylls[-1].append(phlist.pop(0))#phone
+                    sylls[-1].append(phlist.pop(0))#nphone
+                    if phlist: sylls.append([])
+                    continue
             except IndexError:
                 pass
             if self.is_vowel(phone):

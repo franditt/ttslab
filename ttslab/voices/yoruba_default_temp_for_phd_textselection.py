@@ -13,17 +13,19 @@ import codecs
 import unicodedata
 import string
 from tempfile import mkstemp
+from collections import OrderedDict
 
 import numpy as np
 
+from .. uttprocessor import UttProcessor
 from .. phoneset import Phoneset
 from .. g2p import G2P_Rewrites_Semicolon, GraphemeNotDefined, NoRuleFound
-from .. defaultvoice import LwaziMultiHTSVoice
-import ttslab.hts_labels_tone as hts_labels_tone
+from .. defaultvoice import LwaziVoice, LwaziMultiHTSVoice
+import ttslab.hts_labels_tone2 as hts_labels_tone
 from .. synthesizer_htsme import SynthesizerHTSME
 from . yoruba_orth2tones import word2tones
-from ttslab.waveform import Waveform
-from ttslab.trackfile import Track
+from .. waveform import Waveform
+from .. trackfile import Track
 from .. pronundict import PronunLookupError
 
 
@@ -32,6 +34,15 @@ def anycharsin(s, stemplate):
         if c in stemplate:
             return True
     return False
+
+def __is_allcaps(voice, token):
+    """ NOTE: single char tokens are never considered ALLCAPS
+    """
+    token = re.sub(u"[%s%s%s]" % (voice.CGRAVE, voice.CACUTE, voice.CUNDOT), "", token)
+    if len(token) > 1:
+        return token == token.upper() and anycharsin(token, string.ascii_letters + voice.SMALLGRAPHSET + voice.SMALLGRAPHSET.upper())
+    else:
+        return False
 
 
 class YorubaPhoneset(Phoneset):
@@ -335,21 +346,27 @@ class SynthesizerHTSME_Tone_NoTone(SynthesizerHTSME_Tone): #no tone labels but l
     
 
 class LwaziYorubaMultiHTSVoice(LwaziMultiHTSVoice):
-    CONJUNCTIONS = ["ẹyin", "ati", # both,and
-                    "sibẹ-sibẹ", "sibẹsibẹ", "afi", "ṣugbọn", #but
-                    "fun", "nitori", "ni", "to", "ri", #for,because
-                    "boya", "tabi", "yala", #either/or/nor
-                    "pẹlu", "jubẹlọ", "bi", "o", "ti", "lẹ", "jẹ", "pe", #yet,although
-                    "lati", "lẹhin", "igbati",  # since
-                    "titi", #until
-                    "akoko" #while
-                    ] #Unicode NFC form
+    # CONJUNCTIONS = ["ẹyin", "ati", # both,and
+    #                 "sibẹ-sibẹ", "sibẹsibẹ", "afi", "ṣugbọn", #but
+    #                 "fun", "nitori", "ni", "to", "ri", #for,because
+    #                 "boya", "tabi", "yala", #either/or/nor
+    #                 "pẹlu", "jubẹlọ", "bi", "o", "ti", "lẹ", "jẹ", "pe", #yet,although
+    #                 "lati", "lẹhin", "igbati",  # since
+    #                 "titi", #until
+    #                 "akoko" #while
+    #                 ] #Unicode NFC form
+    CONJUNCTIONS = [] #Disable for alignments
     CGRAVE = "\u0300"
     CACUTE = "\u0301"
     CUNDOT = "\u0323"
     DIACRITICS = [CGRAVE, CACUTE, CUNDOT]
-    SMALLGRAPHSET = "abdeẹfghijklmnoọprsṣtuwy"
-    ENGWORD_CHARTHRESHOLD = 4 #Only prefer entry in English lexicon for words longer (num chars) than this
+    SMALLGRAPHSET = "abdeẹfghijklmnoọprsṣtuwy'"
+
+    #Setting to "25" practically SWITCHES THIS OFF:
+    ENGWORD_CHARTHRESHOLD = 25 #Only prefer entry in English lexicon for words longer (num chars) than this
+
+    TOKENIZER_DEFAULT_PUNCTUATION = '"`.,:;!?(){}[]-'
+    TOKENIZER_SMALLBASECHARS = "abcdefghijklmnopqrstuvwxyz0123456789"
 
     def __init__(self, phoneset, g2p, pronundict, pronunaddendum,
                  engphoneset, engg2p, engpronundict, engpronunaddendum,
@@ -361,21 +378,15 @@ class LwaziYorubaMultiHTSVoice(LwaziMultiHTSVoice):
                                     engpronundict=engpronundict,
                                     engpronunaddendum=engpronunaddendum,
                                     synthesizer=synthesizer)
+        self.tokenizer = YorubaTokenizer(self)
 
-    def __is_allcaps(self, token):
-        """ NOTE: single char tokens are never considered ALLCAPS
-        """
-        token = re.sub(u"[%s%s%s]" % (self.CGRAVE, self.CACUTE, self.CUNDOT), "", token)
-        if len(token) > 1:
-            return token == token.upper() and anycharsin(token, string.ascii_letters + self.SMALLGRAPHSET + self.SMALLGRAPHSET.upper())
-        else:
-            return False
 
     def normalizer(self, utt, processname):
-        """ words marked with a prepended pipe character "|" or
-            ALLCAPS or if characters in word are not part of standard
-            Yoruba orthography and words in the English pronunciation
-            dictionary or addendum will be marked as English...
+        """ words marked with a prepended pipe character "|" or if
+            characters in word are not part of standard Yoruba
+            orthography and longer (ENGWORD_CHARTHRESHOLD) words in
+            the English pronunciation dictionary or addendum will be
+            marked as English...
         """
         token_rel = utt.get_relation("Token")
         word_rel = utt.new_relation("Word")
@@ -391,13 +402,11 @@ class LwaziYorubaMultiHTSVoice(LwaziMultiHTSVoice):
                     word_item["lang"] = "eng"
                     wordname = wordname[1:]
                     pronunform = pronunform[1:]
-                elif self.__is_allcaps(token_item["name"]): #before lowercase
-                    word_item["lang"] = "eng"
                 elif (((wordname in self.engpronunaddendum or
                         wordname in self.engpronundict) and
                        len(pronunform) > self.ENGWORD_CHARTHRESHOLD and
                        pronunform not in self.pronunaddendum) or
-                      not all([c in self.SMALLGRAPHSET for c in pronunform.lower()])):
+                      not all([c in self.SMALLGRAPHSET for c in pronunform.lower()])): #if invalid Yoruba orthography
                     word_item["lang"] = "eng"
                 else:
                     word_item["lang"] = "def" #default language...
@@ -512,4 +521,77 @@ class LwaziYorubaMultiHTSVoice(LwaziMultiHTSVoice):
                         word_item.next_item["pronunform"] in self.CONJUNCTIONS):
                         phrase_item = phrase_rel.append_item()
                         phrase_item["name"] = "BB"
+        return utt
+
+
+
+
+class YorubaTokenizer(UttProcessor):
+    """ Perform basic "tokenization" based on "text" contained in
+        Utterance...
+
+        Utt Requirements:
+                           Relations: None
+                           Features: text
+
+        Provides:
+                           Relations: Token
+    """
+    
+    DEFAULT_PUNCTUATION = '"`.,:;!?(){}[]-'
+    CGRAVE = "\u0300"
+    CACCENT = "\u0301"
+    CUNDOT = "\u0323"
+    DIACRITICS = CGRAVE + CACCENT + CUNDOT
+    SMALLBASECHARS = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+    def __init__(self, voice, punctuation=None):
+        UttProcessor.__init__(self, voice=voice)
+        
+        if punctuation is not None:
+            self.punctuation = punctuation
+        else:
+            self.punctuation = YorubaTokenizer.DEFAULT_PUNCTUATION
+
+        self.processes = {"default": OrderedDict([("checkinput", None),
+                                                  ("tokenizer", None)])}
+
+    def checkinput(self, utt, processname):
+        if not "text" in utt:
+            raise UttProcessorError("Utterance needs to have 'text' feature...")
+        return utt
+
+    def tokenizer(self, utt, processname):
+        text = utt["text"]
+        ####basic sanity checks/fixes/conversions:
+        if type(text) is not unicode:
+            text = unicode(text, encoding="utf-8")             #to unicode 
+        text = unicodedata.normalize("NFKD", text)             #decompose unicode (with compatibility transform -- handles ligatures)
+        text = re.sub(u"\\s+([%s])" % YorubaTokenizer.DIACRITICS, "\\1", text) #no combining diacritics after whitespace -- fix...
+        for c in YorubaTokenizer.DIACRITICS:
+            text = re.sub(u"%s%s" % (c, c), c, text)                #no duplicate diacritics -- fix...
+        utt["text"] = text
+        ####
+        rawtokens = text.split()  #simply splitting on whitespace...
+        token_rel = utt.new_relation("Token")
+        for rawtoken in rawtokens: 
+            #adding only single char to pre- or post-punctuation...
+            if rawtoken[0] in self.punctuation:
+                prepunctuation = rawtoken[0]
+            else:
+                prepunctuation = None
+            if rawtoken[-1] in self.punctuation:
+                postpunctuation = rawtoken[-1]
+            else:
+                postpunctuation = None
+            #strip all punctuation...
+            rawtoken = rawtoken.strip(self.punctuation)
+            #if anything left, add to token_rel:
+            if anycharsin(rawtoken.lower(), self.SMALLBASECHARS): #don't add dangling diacritics if any..
+                item = token_rel.append_item()
+                item["name"] = rawtoken
+                if prepunctuation:
+                    item["prepunc"] = prepunctuation
+                if postpunctuation:
+                    item["postpunc"] = postpunctuation
         return utt
