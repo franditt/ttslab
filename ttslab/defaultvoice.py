@@ -544,6 +544,33 @@ class LwaziMultiHTSVoice(LwaziHTSVoice):
         return utt
 
 
+class LwaziPromHTSVoice(LwaziHTSVoice):
+    
+    def normalizer(self, utt, processname):
+        """ words marked with a prepended circumflex character "^"
+            will be marked as prominent...
+        """
+        token_rel = utt.get_relation("Token")
+        word_rel = utt.new_relation("Word")
+        for token_item in token_rel:
+            tokentext = token_item["name"].lower()
+            tokentextlist = tokentext.split("-")  #split tokens on dashes to create multiple words...revisit
+            for wordname in tokentextlist:
+                #tokenizer does NFKD and all pronun resources are in
+                #NFC:
+                wordname = unicodedata.normalize("NFC", wordname) 
+                word_item = word_rel.append_item()
+                if wordname.startswith("^"):
+                    word_item["prom"] = 1
+                    wordname = wordname[1:]
+                else:
+                    word_item["prom"] = 0 #no prominence
+                word_item["name"] = wordname
+                token_item.add_daughter(word_item)
+        return utt
+
+
+
 if __name__ == "__main__":
     v = DefaultVoice()
     u = v.synthesize("Hoe sê mens dit in Afrikaans?", "text-to-words")

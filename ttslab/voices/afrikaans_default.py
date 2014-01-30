@@ -12,7 +12,13 @@ __author__ = "Daniel van Niekerk"
 __email__ = "dvn.demitasse@gmail.com"
 
 import re
+from collections import OrderedDict
 from .. phoneset import Phoneset
+from .. defaultvoice import LwaziHTSVoice, LwaziPromHTSVoice
+
+from .. synthesizer_htsme import SynthesizerHTSME
+import ttslab.hts_labels_prom as hts_labels_prom
+
 
 class LwaziAfrikaansPhoneset(Phoneset):
     """ The clusters and syllabification are ripped from the English
@@ -321,3 +327,98 @@ class LwaziAfrikaansPhoneset(Phoneset):
                 sylls.append([])
         return sylls
         
+class LwaziAfrikaans_simpleGPOS_HTSVoice(LwaziPromHTSVoice):
+    """ GPOS from Festival English example...
+    """
+    PREPOSITIONS = ["in", "van", "vir", "op", "daardie", "met",
+                    "by", "vanaf", "as", "teen", "voor", "onder",
+                    "na", "oor", "terwyl", "sonder", "dat", "deur",
+                    "tussen", "per", "af", "langs", "hierdie", "naas"]
+    DETERMINERS = ["die", "n", "geen", "nie", "elke", "nog", "al",
+                   "enige", "beide", "baie"]
+    MODAL = ["sal", "wil", "mag", "sou", "wou", "moet", "wees"]
+    CONJUNCTIONS = ["en", "maar", "omdat", "want", "of"]
+    INTERROGATIVE_PRONOUNS = ["wie", "wat", "watter", "waar", "hoe", "wanneer", "hoekom"]
+    PERSONAL_PRONOUNS = ["haar", "sy", "hulle", "hul", "ons", "syne", "myne", "hare"]
+    AUXILIARY_VERBS = ["is", "het"]
+    GPOS = dict([(word, "prep") for word in PREPOSITIONS] +
+                [(word, "det") for word in DETERMINERS] +
+                [(word, "md") for word in MODAL] +
+                [(word, "cc") for word in CONJUNCTIONS] +
+                [(word, "wp") for word in INTERROGATIVE_PRONOUNS] + 
+                [(word, "pps") for word in PERSONAL_PRONOUNS] +
+                [(word, "aux") for word in AUXILIARY_VERBS])
+
+    def __init__(self, phoneset, g2p, pronundict, pronunaddendum, synthesizer):
+        LwaziHTSVoice.__init__(self,
+                               phoneset=phoneset,
+                               g2p=g2p,
+                               pronundict=pronundict,
+                               pronunaddendum=pronunaddendum,
+                               synthesizer=synthesizer)
+        
+        self.processes = {"text-to-words": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", "default"),
+                                                        ("gpos", None),
+                                                        ("phrasifier", None)]),
+                          "text-to-segments": OrderedDict([("tokenizer", "default"),
+                                                           ("normalizer", "default"),
+                                                           ("gpos", None),
+                                                           ("phrasifier", None),
+                                                           ("phonetizer", None),
+                                                           ("pauses", None)]),
+                          "text-to-label": OrderedDict([("tokenizer", "default"),
+                                                        ("normalizer", "default"),
+                                                        ("gpos", None),
+                                                        ("phrasifier", None),
+                                                        ("phonetizer", None),
+                                                        ("pauses", None),
+                                                        ("synthesizer", "label_only")]),
+                          "text-to-wave": OrderedDict([("tokenizer", "default"),
+                                                       ("normalizer", "default"),
+                                                       ("gpos", None),
+                                                       ("phrasifier", None),
+                                                       ("phonetizer", None),
+                                                       ("pauses", None),
+                                                       ("synthesizer", "label_and_synth")]),
+                          "utt-to-label": OrderedDict([("synthesizer", "label_only")]),
+                          "utt-to-wave": OrderedDict([("synthesizer", "label_and_synth")])}
+    
+    def gpos(self, utt, processname):
+        word_rel = utt.get_relation("Word")
+        for word_item in word_rel:
+            if word_item["name"] in self.GPOS:
+                word_item["gpos"] = "nc"
+            else:
+                word_item["gpos"] = "c"
+        return utt
+
+class SynthesizerHTSME_Prominence(SynthesizerHTSME):
+    def hts_label(self, utt, processname):
+        lab = []
+
+        starttime = 0
+        for phone_item in utt.get_relation("Segment"):
+            if "end" in phone_item:
+                endtime = hts_labels_prom.float_to_htk_int(phone_item["end"])
+            else:
+                endtime = None
+            phlabel = [hts_labels_prom.p(phone_item),
+                       hts_labels_prom.a(phone_item),
+                       hts_labels_prom.b(phone_item),
+                       hts_labels_prom.c(phone_item),
+                       hts_labels_prom.d(phone_item),
+                       hts_labels_prom.e(phone_item),
+                       hts_labels_prom.f(phone_item),
+                       hts_labels_prom.g(phone_item),
+                       hts_labels_prom.h(phone_item),
+                       hts_labels_prom.i(phone_item),
+                       hts_labels_prom.j(phone_item)]
+            if endtime is not None:
+                lab.append("%s %s " % (str(starttime).rjust(10), str(endtime).rjust(10)) + "/".join(phlabel))
+            else:
+                lab.append("/".join(phlabel))
+            starttime = endtime
+
+        utt["hts_label"] = lab
+        return utt
