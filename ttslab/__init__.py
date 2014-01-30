@@ -6,6 +6,9 @@ from __future__ import unicode_literals, division, print_function #Py2
 __author__ = "Daniel van Niekerk"
 __email__ = "dvn.demitasse@gmail.com"
 
+import sys
+sys.setrecursionlimit(1000000)
+
 try:
     import cPickle as pickle  #Py2
 except ImportError:
