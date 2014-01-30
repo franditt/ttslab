@@ -61,7 +61,7 @@ class TTSClient(object):
         return b64decode(self.request("synth", voicename, text))
 
     def listvoices(self):
-        self.request("listvoices")
+        return self.request("listvoices")
 
 
 def setopts():
