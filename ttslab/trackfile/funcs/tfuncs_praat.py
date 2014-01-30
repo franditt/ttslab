@@ -26,7 +26,7 @@ DEF_EXTRACT_MAXPITCH = 600  #used when fixocterrs is True
 DEF_MINPITCH = 50
 DEF_MAXPITCH = 350
 DEF_TIMESTEP = 0.005     #0.0 -> calc from pitch
-DEF_BANDWIDTH = 100.0    #Hz (Bandwidth parameter)
+DEF_INT_MINPITCH = 100.0    #Hz (Bandwidth parameter)
 
 PRAAT_GET_F0 = \
 """#
@@ -63,7 +63,7 @@ endform
 
 Read from file... 'input_wav_file_name$'
 
-To Intensity... %(smoothingbandwidth)s %(timestep)s yes
+To Intensity... %(minpitch)s %(timestep)s yes
 
 starttime = Get start time
 endtime = Get end time
@@ -152,14 +152,15 @@ def get_f0(track, wavfilelocation, minpitch=DEF_MINPITCH, maxpitch=DEF_MAXPITCH,
         track.maxpitch = 12.0 * np.log2(track.maxpitch)
         
 
-def get_intensity(track, wavfilelocation, timestep=DEF_TIMESTEP, smoothingbandwidth=DEF_BANDWIDTH):
-    """Use "praat" to extract intensity contour, bandwidth determines
-    smoothing (windowsize I presume)...
+def get_intensity(track, wavfilelocation, timestep=DEF_TIMESTEP, minpitch=DEF_INT_MINPITCH):
+    """Use "praat" to extract intensity contour, minpitch determines
+       windowsize in order to minimize ripple expected from periodic
+       energy...
     """
 
     wavfilelocation = os.path.abspath(wavfilelocation)
     parms = {'timestep' : timestep,
-             'smoothingbandwidth': smoothingbandwidth}
+             'minpitch': minpitch}
 
     #write temp file - Praat script
     tempfh = NamedTemporaryFile()
@@ -245,6 +246,12 @@ def newtrack_from_ispline(track, times, ignore_zeros=False):
     t.values = spline(t.times).reshape(-1, 1)
     return t
 
+def newtrack_from_linearinterp(track, times):
+    t = Track()
+    t.times = np.array(times)
+    t.values = np.interp(times, track.times.flatten(), track.values.flatten()).reshape(-1, 1)
+    return t
+
 
 def _calc_sspline(track, s, ignore_zeros=False):
     """ 1-d cubic smoothing spline from track...
@@ -257,17 +264,18 @@ def _calc_sspline(track, s, ignore_zeros=False):
 
 
 def newtrack_from_sspline(track, times, s=500, ignore_zeros=False):
-    try:
-        if ignore_zeros:
-            spline = track._sspline_nonzero
-        else:
-            spline = track._sspline
-    except AttributeError:
-        track._calc_sspline(s, ignore_zeros)
-        if ignore_zeros:
-            spline = track._sspline_nonzero
-        else:
-            spline = track._sspline
+    #DEMITASSE: FIXME_MUST RECALC SPLINE IF PARM (s) CHANGED!
+    # try:
+    #     if ignore_zeros:
+    #         spline = track._sspline_nonzero
+    #     else:
+    #         spline = track._sspline
+    # except AttributeError:
+    track._calc_sspline(s, ignore_zeros)
+    if ignore_zeros:
+        spline = track._sspline_nonzero
+    else:
+        spline = track._sspline
 
     t = Track()
     t.times = np.array(times)
