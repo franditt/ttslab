@@ -246,10 +246,15 @@ def newtrack_from_ispline(track, times, ignore_zeros=False):
     t.values = spline(t.times).reshape(-1, 1)
     return t
 
-def newtrack_from_linearinterp(track, times):
+def newtrack_from_linearinterp(track, times, ignore_zeros=False):
+    flatttimes = track.times.flatten()
+    flattvalues = track.values.flatten()
+    if ignore_zeros:
+        flatttimes = flatttimes[np.nonzero(flattvalues)]
+        flattvalues = flattvalues[np.nonzero(flattvalues)]
     t = Track()
     t.times = np.array(times)
-    t.values = np.interp(times, track.times.flatten(), track.values.flatten()).reshape(-1, 1)
+    t.values = np.interp(times, flatttimes, flattvalues).reshape(-1, 1)
     return t
 
 
