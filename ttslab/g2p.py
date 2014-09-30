@@ -194,7 +194,8 @@ class G2P_Rewrites_Semicolon(G2P_Rewrites):
                 rule.phoneme = self.phonemap[rule.phoneme]
 
     def map_graphs(self):
-        """ Apply self.graphmap to all graphemes in self.ruleset
+        """Apply self.graphmap to all graphemes in self.ruleset and
+           self.gnulls
         """
         for k, v in self.graphmap.items():
             if k == v: continue
@@ -214,6 +215,7 @@ class G2P_Rewrites_Semicolon(G2P_Rewrites):
                         self.gnulls.update({gk: gv})
 
 if __name__ == "__main__":
+    import sys
     try:
         rulesfn, gnullsfn, pmapfn = sys.argv[1:4]
         word = sys.argv[4]
