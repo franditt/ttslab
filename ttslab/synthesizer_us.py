@@ -27,7 +27,7 @@ from scipy.spatial.distance import cdist
 import ttslab
 from . uttprocessor import *
 from . waveform import Waveform
-from . relp import synth_filter
+from . _relp import synth_filter
 
 SAMPLERATE = 16000
 WINDOWFACTOR = 1
